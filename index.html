@@ -1,0 +1,805 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cluster Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --paper:#ffffff; --ink:#121212; --ink-2:#5f5f5f; --ink-3:#9a9a9a;
+  --rule:#e4e4e4; --rule-2:#f1f1f1; --wash:#f7f7f7;
+  --accent:#1d4ed8; --ok:#1f7a3a; --ok-wash:#e9f5ec; --warn:#a15c00; --warn-wash:#fbf1e0;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --sans:"Instrument Sans",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0f0f0f; --ink:#ececec; --ink-2:#a3a3a3; --ink-3:#6b6b6b;
+    --rule:#262626; --rule-2:#1c1c1c; --wash:#161616;
+    --accent:#7ea2ff; --ok:#6fcf8a; --ok-wash:#132118; --warn:#e0a44a; --warn-wash:#241b0c;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0f0f0f; --ink:#ececec; --ink-2:#a3a3a3; --ink-3:#6b6b6b;
+  --rule:#262626; --rule-2:#1c1c1c; --wash:#161616;
+  --accent:#7ea2ff; --ok:#6fcf8a; --ok-wash:#132118; --warn:#e0a44a; --warn-wash:#241b0c;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+.wrap{max-width:1240px;margin:0 auto;padding-inline:20px;padding-block:0 80px}
+.mono{font-family:var(--mono)}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2)}
+h1,h2,h3{font-weight:500;letter-spacing:-.01em;text-wrap:balance;margin:0}
+h1{font-size:34px;line-height:1.15}
+h2{font-size:22px;line-height:1.25}
+h3{font-size:15px;font-weight:600}
+p{margin:0}
+.muted{color:var(--ink-2)}
+.small{font-size:13px}
+hr{border:0;border-top:1px solid var(--rule);margin:0}
+
+/* top bar */
+.top{display:flex;justify-content:space-between;align-items:center;gap:16px;padding-block:18px;border-bottom:1px solid var(--rule);position:sticky;top:env(safe-area-inset-top,0px);background:var(--paper);z-index:5}
+.top .brand{font-family:var(--mono);font-size:13px;font-weight:600;letter-spacing:.02em}
+.top nav{display:flex;gap:18px;flex-wrap:wrap}
+.top nav a{font-family:var(--mono);font-size:12px;color:var(--ink-2)}
+.top nav a:hover{color:var(--ink);text-decoration:none}
+
+/* hero */
+.hero{padding-block:56px 40px;display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:40px;border-bottom:1px solid var(--rule)}
+.hero p.lede{font-size:17px;color:var(--ink-2);max-width:60ch;margin-top:16px}
+.facts{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--rule)}
+.facts div{padding:14px 16px;border-bottom:1px solid var(--rule)}
+.facts div:nth-child(odd){border-right:1px solid var(--rule)}
+.facts div:nth-last-child(-n+2){border-bottom:0}
+.facts .v{font-family:var(--mono);font-size:20px;font-weight:500;display:block;margin-top:2px;font-variant-numeric:tabular-nums}
+.facts .k{font-size:12px;color:var(--ink-2)}
+
+/* layout */
+.body{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:48px;align-items:start;margin-top:40px}
+.summary{position:sticky;top:calc(env(safe-area-inset-top,0px) + 76px);border:1px solid var(--rule)}
+.summary .head{padding:12px 16px;border-bottom:1px solid var(--rule);display:flex;justify-content:space-between;align-items:baseline}
+.summary .big{font-family:var(--mono);font-size:26px;font-weight:500;font-variant-numeric:tabular-nums;line-height:1.1}
+.summary .rows{padding:6px 0}
+.summary .row{display:flex;justify-content:space-between;gap:12px;padding:6px 16px;font-size:13px}
+.summary .row span:last-child{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.summary .sec{padding:10px 16px 4px;border-top:1px solid var(--rule)}
+.bar{display:flex;height:8px;margin:8px 16px 4px;background:var(--rule-2);overflow:hidden}
+.bar i{display:block;height:100%}
+.legend{display:grid;grid-template-columns:1fr 1fr;gap:2px 12px;padding:4px 16px 12px;font-size:11px;font-family:var(--mono);color:var(--ink-2)}
+.legend i{display:inline-block;width:8px;height:8px;margin-right:6px;vertical-align:middle}
+
+/* sections */
+section.phase{padding-block:40px;border-bottom:1px solid var(--rule);scroll-margin-top:90px}
+.phase-head{display:grid;grid-template-columns:64px minmax(0,1fr);gap:16px;align-items:baseline}
+.phase-head .n{font-family:var(--mono);font-size:13px;color:var(--ink-2)}
+.phase-head .when{font-family:var(--mono);font-size:12px;color:var(--ink-3);margin-top:4px}
+.guide{margin-top:18px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px}
+.guide p+p{margin-top:10px}
+.guide .text{max-width:62ch}
+.guide .text p{color:var(--ink-2)}
+.guide .text strong{color:var(--ink);font-weight:600}
+.note{border-left:2px solid var(--ink);padding:8px 12px;font-size:13px;color:var(--ink-2);margin-top:14px}
+.note b{color:var(--ink);font-weight:600}
+
+/* checklist */
+.check{border:1px solid var(--rule)}
+.check .ch{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--rule);font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2)}
+.check .ch .cnt{font-variant-numeric:tabular-nums}
+.check label{display:grid;grid-template-columns:18px minmax(0,1fr);gap:10px;padding:9px 14px;border-bottom:1px solid var(--rule-2);font-size:13.5px;cursor:pointer;align-items:start}
+.check label:last-child{border-bottom:0}
+.check input{margin:3px 0 0;width:14px;height:14px;accent-color:var(--ink)}
+.check label.done span.t{color:var(--ink-3);text-decoration:line-through}
+.check .sub{display:block;font-size:12px;color:var(--ink-3);margin-top:1px}
+
+/* tables */
+.tbl{overflow-x:auto;border:1px solid var(--rule)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--rule-2);vertical-align:top}
+th{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);font-weight:500;background:var(--wash);border-bottom:1px solid var(--rule)}
+td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td .pn{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);display:block}
+
+/* builder */
+.builder{margin-top:20px;display:grid;gap:0;border:1px solid var(--rule)}
+.opt{display:grid;grid-template-columns:200px minmax(0,1fr);gap:16px;padding:16px;border-bottom:1px solid var(--rule)}
+.opt:last-child{border-bottom:0}
+.opt .lab h3{font-size:14px}
+.opt .lab p{font-size:12px;color:var(--ink-2);margin-top:3px}
+.choices{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
+.choice{border:1px solid var(--rule);padding:10px 12px;cursor:pointer;display:grid;gap:3px;background:var(--paper)}
+.choice:hover{border-color:var(--ink-3)}
+.choice.on{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.choice .t{font-size:13.5px;font-weight:500}
+.choice .d{font-size:12px;color:var(--ink-2)}
+.choice .pr{font-family:var(--mono);font-size:12px;color:var(--ink);margin-top:4px;font-variant-numeric:tabular-nums}
+.choice.na .pr{color:var(--warn)}
+.field{display:flex;align-items:center;gap:10px;font-size:13px;flex-wrap:wrap}
+.field input[type=number],.field input[type=text],.field select{font:inherit;font-family:var(--mono);font-size:13px;padding:7px 10px;border:1px solid var(--rule);background:var(--paper);color:var(--ink);width:120px}
+.field input[type=range]{width:180px;accent-color:var(--ink)}
+.field .val{font-family:var(--mono);font-variant-numeric:tabular-nums;min-width:56px}
+.seg{display:inline-flex;border:1px solid var(--rule)}
+.seg button{font:inherit;font-family:var(--mono);font-size:12px;padding:7px 12px;background:var(--paper);color:var(--ink-2);border:0;border-right:1px solid var(--rule);cursor:pointer}
+.seg button:last-child{border-right:0}
+.seg button.on{background:var(--ink);color:var(--paper)}
+.btn{font:inherit;font-family:var(--mono);font-size:12px;padding:7px 12px;border:1px solid var(--ink);background:var(--paper);color:var(--ink);cursor:pointer}
+.btn:hover{background:var(--ink);color:var(--paper)}
+.btn.ghost{border-color:var(--rule);color:var(--ink-2)}
+.custom-rows{display:grid;gap:6px}
+.custom-rows .r{display:grid;grid-template-columns:minmax(0,1fr) 110px 70px 32px;gap:6px}
+.custom-rows input{font:inherit;font-family:var(--mono);font-size:12.5px;padding:6px 8px;border:1px solid var(--rule);background:var(--paper);color:var(--ink);min-width:0}
+.custom-rows button{border:1px solid var(--rule);background:var(--paper);color:var(--ink-2);cursor:pointer;font-family:var(--mono)}
+.fit{margin-top:14px;padding:12px 14px;border:1px solid var(--rule);background:var(--wash);font-size:13px;display:grid;gap:6px}
+.fit b{font-weight:600}
+.pill{display:inline-block;font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;padding:2px 6px;border:1px solid var(--rule);color:var(--ink-2);vertical-align:middle;margin-left:6px}
+.pill.ok{color:var(--ok);border-color:var(--ok);background:var(--ok-wash)}
+.pill.warn{color:var(--warn);border-color:var(--warn);background:var(--warn-wash)}
+
+/* bom output */
+.bom-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-top:28px;margin-bottom:12px}
+.timeline{display:grid;grid-template-columns:repeat(14,1fr);gap:2px;margin-top:16px}
+.timeline .w{font-family:var(--mono);font-size:10px;color:var(--ink-3);text-align:center}
+.timeline .t{height:22px;background:var(--rule-2);display:flex;align-items:center;padding:0 6px;font-size:11px;overflow:hidden;white-space:nowrap;color:var(--ink-2)}
+.timeline .t.on{background:var(--ink);color:var(--paper)}
+.tl-row{display:contents}
+.foot{padding-block:28px;font-size:12px;color:var(--ink-3);font-family:var(--mono);line-height:1.7}
+
+@media (max-width:980px){
+  .body{grid-template-columns:1fr}
+  .summary{position:static}
+  .hero{grid-template-columns:1fr}
+}
+@media (max-width:700px){
+  h1{font-size:28px}
+  .guide{grid-template-columns:1fr}
+  .opt{grid-template-columns:1fr}
+  .phase-head{grid-template-columns:1fr;gap:4px}
+  .custom-rows .r{grid-template-columns:minmax(0,1fr) 90px 56px 32px}
+  .timeline{grid-template-columns:repeat(7,1fr)}
+  .timeline .w:nth-child(n+8){display:none}
+}
+@media (prefers-reduced-motion:no-preference){.choice{transition:border-color .12s}}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="top">
+    <div class="brand">io.net / cluster builder</div>
+    <nav>
+      <a href="#build">Builder</a>
+      <a href="#p0">Decide</a>
+      <a href="#p1">Site</a>
+      <a href="#p2">Compute</a>
+      <a href="#p3">Fabric</a>
+      <a href="#p4">Racks</a>
+      <a href="#p5">Storage</a>
+      <a href="#p6">Software</a>
+      <a href="#p7">Services</a>
+      <a href="#p8">Handover</a>
+      <a href="#ref">Reference builds</a>
+    </nav>
+  </div>
+
+  <div class="hero">
+    <div>
+      <div class="eyebrow">Owning capacity, end to end</div>
+      <h1 style="margin-top:10px">What it takes to stand up your own GPU cluster, from the colocation contract to bare-metal handover.</h1>
+      <p class="lede">A guide, a checklist and a configurator in one page. Pick a platform, a fabric, a cooling method and a storage tier; the running total, power draw, rack count and a 36-month cost per GPU-hour update as you go. Every price on this page comes from a quote or BOM on file, and each one says which.</p>
+    </div>
+    <div class="facts">
+      <div><span class="k">Reference builds on file</span><span class="v">32, 64, 128 nodes</span></div>
+      <div><span class="k">Quoted all-in, 32 × HGX B300</span><span class="v">$36.9M to $41.5M</span></div>
+      <div><span class="k">Typical programme</span><span class="v">14 weeks</span></div>
+      <div><span class="k">Power per compute rack</span><span class="v">up to 69 kW</span></div>
+    </div>
+  </div>
+
+  <div class="body">
+  <main>
+
+    <!-- BUILDER -->
+    <section class="phase" id="build" style="padding-top:8px">
+      <div class="phase-head">
+        <div class="n">BUILD</div>
+        <div>
+          <h2>Configure a cluster</h2>
+          <div class="when">Prices derived from the three Penguin Solutions order forms (Q255477 / Q255478 / Q255493, July 2026), scaled per node. Items marked "no quote" are placeholders you should overwrite.</div>
+        </div>
+      </div>
+
+      <div class="builder">
+        <div class="opt">
+          <div class="lab"><h3>What is it for</h3><p>Shapes the fabric and storage recommendation below.</p></div>
+          <div class="seg" id="use">
+            <button data-v="train" class="on">Training</button>
+            <button data-v="mixed">Mixed</button>
+            <button data-v="infer">Inference</button>
+          </div>
+        </div>
+
+        <div class="opt">
+          <div class="lab"><h3>Scale</h3><p>8-GPU nodes. Quotes are for 32, Tech Directcore is 128, Civo treats 64 as one scale unit. Slider to 640 nodes (5,120 GPUs); type any number up to 5,000 nodes.</p></div>
+          <div class="field">
+            <input type="range" id="nodes" min="8" max="640" step="8" value="32">
+            <input type="number" id="nodesn" min="1" max="5000" step="1" value="32" style="width:90px" aria-label="Nodes">
+            <span class="val" id="nodesv">32 nodes</span>
+            <span class="muted small" id="gpusv">256 GPUs</span>
+            <span class="muted small" id="suv"></span>
+          </div>
+        </div>
+
+        <div class="opt">
+          <div class="lab"><h3>Compute platform</h3><p>Per-node price includes GPUs, CPUs, memory, local NVMe, NICs and 3-year support.</p></div>
+          <div class="choices" id="platform"></div>
+        </div>
+
+        <div class="opt">
+          <div class="lab"><h3>Cooling</h3><p>Decides node density per rack, and whether the colo needs a facility water loop.</p></div>
+          <div class="choices" id="cooling"></div>
+        </div>
+
+        <div class="opt">
+          <div class="lab"><h3>Compute fabric</h3><p>Switches, licences, 3-year support, optics and a cable allowance. Rail-optimised, one 800G port per GPU.</p></div>
+          <div class="choices" id="fabric"></div>
+        </div>
+
+        <div class="opt">
+          <div class="lab"><h3>Shared storage</h3><p>Every node already carries about 30 TB of local NVMe scratch. Add a shared tier for datasets and checkpoints.</p></div>
+          <div class="choices" id="storage"></div>
+        </div>
+
+        <div class="opt">
+          <div class="lab"><h3>Cluster management</h3><p>Head nodes plus provisioning, scheduling and telemetry.</p></div>
+          <div class="choices" id="mgmt"></div>
+        </div>
+
+        <div class="opt">
+          <div class="lab"><h3>Deployment and operations</h3><p>Rack integration and burn-in are in the platform price. This is the on-site deploy plus who runs it afterwards.</p></div>
+          <div class="choices" id="ops"></div>
+        </div>
+
+        <div class="opt">
+          <div class="lab"><h3>Colocation</h3><p>Billed on contracted kW. US wholesale for high-density halls tends to run $150 to $250 per kW-month.</p></div>
+          <div class="field">
+            <label for="colo">$ / kW / month</label><input type="number" id="colo" value="180" min="0" step="5">
+            <label for="util">Utilisation</label><input type="range" id="util" min="40" max="100" step="5" value="85"><span class="val" id="utilv">85%</span>
+            <label for="term">Term</label><select id="term"><option value="24">24 mo</option><option value="36" selected>36 mo</option><option value="48">48 mo</option><option value="60">60 mo</option></select>
+          </div>
+        </div>
+
+        <div class="opt">
+          <div class="lab"><h3>Add your own items</h3><p>Anything not covered: firewalls, console servers, spares, freight, duties, insurance.</p></div>
+          <div>
+            <div class="custom-rows" id="custom"></div>
+            <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn ghost" id="addrow">+ Add line</button>
+              <button class="btn ghost" id="addpreset">+ Add the usual extras (gateway pair, console servers, spares, freight)</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="fit" id="fit"></div>
+
+      <div class="bom-head">
+        <h3>Generated bill of materials</h3>
+        <div style="display:flex;gap:8px"><button class="btn" id="copy">Copy as text</button><button class="btn ghost" id="reset">Reset</button></div>
+      </div>
+      <div class="tbl"><table id="bom"><thead><tr><th>Category</th><th>Item</th><th class="num">Qty</th><th class="num">Unit</th><th class="num">Extended</th><th>Basis</th></tr></thead><tbody></tbody></table></div>
+    </section>
+
+    <!-- PHASE 0 -->
+    <section class="phase" id="p0">
+      <div class="phase-head">
+        <div class="n">00</div>
+        <div><h2>Decide and finance</h2><div class="when">Before anything is ordered · weeks 0 to 2</div></div>
+      </div>
+      <div class="guide">
+        <div class="text">
+          <p><strong>Start from the workload, not the hardware.</strong> Training wants the tightest fabric you can afford (InfiniBand or a lossless dual-plane Ethernet) and a real shared storage tier for checkpoints. Inference wants smaller GPU groupings, north-south bandwidth and elasticity; it can often run on local NVMe alone. A mixed cluster needs a decision on how it is partitioned, static or elastic, because that decision drives the scheduler and the network design.</p>
+          <p><strong>Pick a scale unit and repeat it.</strong> The quotes on file price 32 nodes (256 GPUs); the Civo design treats 64 nodes (512 GPUs) as one self-contained scale unit with no spine layer, and adds a spine only when a second unit arrives. Building in identical units keeps the leaf/spine maths, the rack elevations and the cabling identical each time.</p>
+          <p><strong>Know your money before you know your OEM.</strong> Order forms are valid for 14 days, are prepaid, and pricing can move before shipment. A financed build needs the facility drawdown and compliance checks done before the OEM order goes in; Civo budget two weeks for that alone. Export compliance is a hard gate: every OEM will require an end-user certification for advanced ICs, naming the destination country and end use.</p>
+          <div class="note"><b>Rule of thumb from the quotes.</b> At 32 nodes the servers are 52 to 56% of total cost. Fabric plus optics is 14 to 16%. Storage is 7 to 11%. Managed services over three years is 16 to 18%. Racks and power are about 1%.</div>
+        </div>
+        <div class="check" data-phase="p0">
+          <div class="ch"><span>Checklist</span><span class="cnt"></span></div>
+          <label><input type="checkbox"><span><span class="t">Workload profile written down: training, inference or mixed, and the partitioning rule if mixed</span></span></label>
+          <label><input type="checkbox"><span><span class="t">Scale unit chosen (32 or 64 nodes) and expansion path agreed</span></span></label>
+          <label><input type="checkbox"><span><span class="t">Tenancy model fixed: single-tenant, or multi-tenant with isolation requirements</span></span></label>
+          <label><input type="checkbox"><span><span class="t">Funding secured: prepay terms, drawdown schedule, who carries FX and tariff risk</span><span class="sub">Penguin: pre-paid, freight pre-pay and add, customer pays duties and tariffs</span></span></label>
+          <label><input type="checkbox"><span><span class="t">Advanced IC and HQ certification signed for the OEM</span><span class="sub">Destination country, end user, end use; restricted list includes China, UAE, Saudi Arabia, Vietnam, Qatar and others</span></span></label>
+          <label><input type="checkbox"><span><span class="t">Master purchase agreement or order form terms reviewed by legal</span></span></label>
+          <label><input type="checkbox"><span><span class="t">Backup, archive and DR explicitly in or out of scope</span><span class="sub">Civo design: out of scope, snapshots only</span></span></label>
+          <label><input type="checkbox"><span><span class="t">Target cost per GPU-hour and utilisation assumption agreed with finance</span></span></label>
+        </div>
+      </div>
+    </section>
+
+    <!-- PHASE 1 -->
+    <section class="phase" id="p1">
+      <div class="phase-head">
+        <div class="n">01</div>
+        <div><h2>Site and colocation</h2><div class="when">Contract before the OEM order · lead time 4 to 12 weeks for high-density space</div></div>
+      </div>
+      <div class="guide">
+        <div class="text">
+          <p><strong>Power density is the first question the colo will ask.</strong> An air-cooled HGX B300 node draws around 13 kW under load; a 48U rack holding two of them plus switches needs two 34.5 kW three-phase PDUs (240/415 V, 60 A). The Lenovo B200 spec puts a six-node liquid-cooled rack at 69.6 kW nominal max and 1,813 A total across 32 nodes. Most colos cannot deliver this in a standard hall, so ask for a high-density suite and get the per-rack kW in writing.</p>
+          <p><strong>Air or liquid decides the site.</strong> Air-cooled B300 racks at four nodes per rack need heavy cold-aisle containment and roughly 52 kW of heat rejection per rack. Direct liquid cooling packs eight nodes into a rack with an in-rack 250 kW CDU, but the facility must supply a chilled-water loop, DN65 primary connections, a coolant fill and a water-quality regime.</p>
+          <p><strong>Floor loading and access.</strong> A loaded 48U rack weighs 850 to 900 kg; a 10U GPU server needs a lift-assist cart or the OEM will refuse on-site service. Confirm raised-floor rating, ramp and lift capacity, and a staging area where 32 crates can sit.</p>
+          <div class="note"><b>Cross-connects and carriers.</b> Budget at least two diverse 100G or 400G carrier circuits for ingress, plus cross-connects to any cloud on-ramp your customers will pull data from. These are not in any of the OEM quotes.</div>
+        </div>
+        <div class="check" data-phase="p1">
+          <div class="ch"><span>Checklist</span><span class="cnt"></span></div>
+          <label><input type="checkbox"><span><span class="t">Contracted kW per rack and total, with A+B feeds, confirmed in the colo contract</span></span></label>
+          <label><input type="checkbox"><span><span class="t">Voltage and receptacle match the PDUs (415 V 3-phase Wye, IEC 60309 60 A or 100 A)</span></span></label>
+          <label><input type="checkbox"><span><span class="t">Cooling method chosen; for DLC the facility loop, CDU placement, leak detection and coolant supply are specified</span></span></label>
+          <label><input type="checkbox"><span><span class="t">Floor loading, rack footprint (750 to 800 mm × 1200 to 1400 mm), aisle depth and containment agreed</span></span></label>
+          <label><input type="checkbox"><span><span class="t">Loading dock, lift and staging area sized for pallets and crated racks</span></span></label>
+          <label><input type="checkbox"><span><span class="t">Carrier circuits and cross-connects ordered (long lead)</span></span></label>
+          <label><input type="checkbox"><span><span class="t">Remote hands SLA, badge access and escort rules for the OEM install team</span></span></label>
+          <label><input type="checkbox"><span><span class="t">Colo SLA covers power, cooling and network availability with credits</span></span></label>
+          <label><input type="checkbox"><span><span class="t">Insurance in place for equipment in transit and on site</span></span></label>
+        </div>
+      </div>
+    </section>
+
+    <!-- PHASE 2 -->
+    <section class="phase" id="p2">
+      <div class="phase-head">
+        <div class="n">02</div>
+        <div><h2>Compute platform</h2><div class="when">Order at week 2 · 8-week manufacturing and logistics lead time</div></div>
+      </div>
+      <div class="guide">
+        <div class="text">
+          <p><strong>All the B300 options are the same 8-GPU HGX baseboard in a different chassis.</strong> What changes is the host side (Intel Xeon 6 6776P or AMD EPYC Turin), memory (2.3 to 3 TB), the NIC arrangement, support tier and price. NVIDIA DGX B300 is the reference, with NVIDIA's own support and mandatory partner installation. Dell XE9780 adds iDRAC, secure component verification and ProSupport Plus with 4-hour mission-critical response. Penguin's Wistron HGX is the lowest-cost OEM route with Penguin-integrated racks. Supermicro and the KR9288 in the Civo design are alternatives without a price on file.</p>
+          <p><strong>Per-node configuration to hold constant across vendors:</strong> 8 × B300 (288 GB HBM3e each), 2 CPUs, 24 to 32 DIMMs of DDR5-6400, 8 × 3.84 TB NVMe scratch, 2 × 960 GB M.2 boot in RAID 1, 8 × ConnectX-8 (one per GPU) for the compute fabric, and separate NICs for storage and front-end. Power supplies: 6+6 redundant at 3,200 W, or 12 × 5,500 W on the Wistron chassis.</p>
+          <div class="note"><b>Ask each OEM to quote the identical spec sheet.</b> The three quotes on file differ by $88,683 per node between lowest and highest, which is $2.8M across 32 nodes, before the difference in support terms.</div>
+        </div>
+        <div class="check" data-phase="p2">
+          <div class="ch"><span>Checklist</span><span class="cnt"></span></div>
+          <label><input type="checkbox"><span><span class="t">Identical spec sheet sent to at least three OEMs; quotes compared line by line</span></span></label>
+          <label><input type="checkbox"><span><span class="t">CPU, memory, NVMe and NIC count confirmed per node</span></span></label>
+          <label><input type="checkbox"><span><span class="t">Support tier chosen: NBD parts-only vs 4-hour on-site; keep-your-drive if data sensitivity requires</span></span></label>
+          <label><input type="checkbox"><span><span class="t">Burn-in (L11) included, and what "software installation not included" means for your stack</span></span></label>
+          <label><input type="checkbox"><span><span class="t">Rack integration at the factory (L10/L11) vs on site; crating, shock and tilt indicators on each rack</span></span></label>
+          <label><input type="checkbox"><span><span class="t">Spares policy: at least one spare node or a hot-spare GPU tray per 32 nodes</span></span></label>
+          <label><input type="checkbox"><span><span class="t">Delivery schedule aligned with colo readiness and the network install (network first)</span></span></label>
+        </div>
+      </div>
+    </section>
+
+    <!-- PHASE 3 -->
+    <section class="phase" id="p3">
+      <div class="phase-head">
+        <div class="n">03</div>
+        <div><h2>Network fabric</h2><div class="when">Order at week 2 · switches usually in stock · install from week 7, ahead of servers</div></div>
+      </div>
+      <div class="guide">
+        <div class="text">
+          <p><strong>Four networks, physically separate.</strong> Compute (east-west GPU traffic, one 800G port per GPU, rail-optimised), storage (one 200G or 400G NIC per node, kept off the compute fabric so checkpoint bursts cannot trigger PFC pause), front-end or in-band (logins, control plane, ingress, inference endpoints), and out-of-band (BMC/IPMI on 1 GbE, plus console servers for every switch).</p>
+          <p><strong>InfiniBand or Ethernet.</strong> NVIDIA Quantum-3 XDR (Q3400, 144 ports of 800G) with UFM is the highest-performance, single-vendor route; the Supermicro BOM uses 4 leaf + 3 spine Q3400 for 32 nodes at a 1:1 down:up ratio. Arista 7060X6 (32 × 800G) with CloudVision, or NVIDIA Spectrum-4 SN5610 (64 × 800G) with Cumulus, give a lossless RoCEv2 fabric that is vendor-agnostic and slightly cheaper; the Civo design runs it as parallel A and B planes so one plane can be drained for maintenance.</p>
+          <p><strong>Optics are a line item people forget.</strong> At 32 nodes the transceivers alone are $1.0M to $3.3M depending on fabric, and both Penguin quotes carry a $400,000 cable placeholder "TBD once datacenter layouts are confirmed". Structured fibre (MPO-12 APC single-mode, 5 to 15 m runs, 1:2 breakouts for spine) is only knowable once you have rack elevations.</p>
+          <p><strong>Reference port maths at 128 nodes (Tech Directcore, Quantum-3 XDR, 1:1 non-blocking):</strong> 16 leaf + 8 spine Q3400, 1,024 single-port 800G transceivers on the nodes, 512 twin-port 1600G on the leaves toward nodes and 1,152 toward spines, 1,024 node-to-leaf and 576 leaf-to-spine 30 m fibres, 2 UFM appliances with a 1K+ HCA subscription. In-band and storage on 8 × SN5600 (4 GPU-side leaves, 2 storage-side leaves, 2 spines). OOB on 19 × SN2201. Edge: 2 × Juniper MX204 with 4 × 100GE, 2 × QFX5120-48Y, 2 × Fortigate 1800F, a /24 announced on your own ASN, operator-level anti-DDoS.</p>
+          <div class="note"><b>Support and licences are recurring.</b> The Arista quote bundles 36 months of CloudVision and A-Care per switch; NVIDIA switches carry 3-year Business Standard support. Put renewal dates in the operating calendar from day one.</div>
+        </div>
+        <div class="check" data-phase="p3">
+          <div class="ch"><span>Checklist</span><span class="cnt"></span></div>
+          <label><input type="checkbox"><span><span class="t">Fabric chosen (IB XDR, Arista 800G Ethernet, Spectrum-4) with a written justification tied to the workload</span></span></label>
+          <label><input type="checkbox"><span><span class="t">Leaf/spine port maths done: ports per node, oversubscription, spare ports for the next scale unit</span></span></label>
+          <label><input type="checkbox"><span><span class="t">Storage fabric and front-end switches sized to the storage platform's validated bandwidth</span></span></label>
+          <label><input type="checkbox"><span><span class="t">OOB: 1 GbE switch pair, console server coverage for every switch, PDU and CDU, isolated from production</span></span></label>
+          <label><input type="checkbox"><span><span class="t">Optics and cable BOM regenerated from the final rack elevations; MPO polarity and APC/UPC verified</span></span></label>
+          <label><input type="checkbox"><span><span class="t">Low-level design: IP plan, BGP/EVPN or IB subnet manager, PFC/ECN and DCQCN settings</span></span></label>
+          <label><input type="checkbox"><span><span class="t">Perimeter: firewall or services gateway pair, NAT, IPsec for remote management</span></span></label>
+          <label><input type="checkbox"><span><span class="t">Switch licences, CloudVision/UFM subscriptions and support renewals calendared</span></span></label>
+        </div>
+      </div>
+    </section>
+
+    <!-- PHASE 4 -->
+    <section class="phase" id="p4">
+      <div class="phase-head">
+        <div class="n">04</div>
+        <div><h2>Racks, power and cabling</h2><div class="when">Rack and stack from week 7 · cabling weeks 9 to 11</div></div>
+      </div>
+      <div class="guide">
+        <div class="text">
+          <p><strong>The rack elevation is the master document.</strong> The Supermicro draft BOM lays out an 11-cabinet air row for 32 nodes: 8 compute racks (4 × 8U nodes each at U8, U17, U26, U35), one leaf rack (4 × Q3400), one spine rack (3 × Q3400 plus the BlueField-3 uplinks), and one Ethernet/OOB rack (2 × SN2201 at U47/U48, 2 × SN5610). The liquid-cooled version collapses to 7 cabinets with 8 nodes and a 250 kW CDU per compute rack. Penguin's quotes use 2 nodes per rack across 16 GPU racks plus spine, leaf and admin racks.</p>
+          <p><strong>Per rack you need:</strong> a 48U, 750 to 800 mm wide, 1200 to 1400 mm deep cabinet with a shock package and bolt-down kit; two switched and monitored 3-phase PDUs (34.5 kW each for air, 52.7 kVA for DLC); zero-U PDU brackets; blanking panels for every empty U; cage nuts; cable-management straps; and locking C19-C20 power cords, colour-coded per feed. Rack integration and burn-in at the factory means the rack arrives crated with tilt and shock indicators.</p>
+          <div class="note"><b>Weight check.</b> The Lenovo spec gives 869 kg per six-node rack against an 1,829 kg rating. A four-node air B300 rack with 10U chassis lands in the same range; confirm the colo floor rating before delivery.</div>
+        </div>
+        <div class="check" data-phase="p4">
+          <div class="ch"><span>Checklist</span><span class="cnt"></span></div>
+          <label><input type="checkbox"><span><span class="t">Rack elevations signed off for compute, leaf, spine and Ethernet/OOB cabinets</span></span></label>
+          <label><input type="checkbox"><span><span class="t">PDU count, rating and receptacle per rack match the colo feed; A/B feed colour coding agreed</span></span></label>
+          <label><input type="checkbox"><span><span class="t">Cabinet dimensions, bolt-down kit and shock packaging specified</span></span></label>
+          <label><input type="checkbox"><span><span class="t">Blanking panels, cage nuts, zero-U brackets and cable straps in the BOM</span></span></label>
+          <label><input type="checkbox"><span><span class="t">Structured cabling plan: fibre lengths per run, patch panels, labelling scheme, spare fibre</span></span></label>
+          <label><input type="checkbox"><span><span class="t">Power cords: type, length, locking, quantity per node and per switch</span></span></label>
+          <label><input type="checkbox"><span><span class="t">For DLC: manifolds, hoses, quick disconnects, leak sensors, CDU support bracket and facility hose kit</span></span></label>
+          <label><input type="checkbox"><span><span class="t">Delivery sequence: racks and network first, servers second, so cabling can begin before GPUs land</span></span></label>
+        </div>
+      </div>
+    </section>
+
+    <!-- PHASE 5 -->
+    <section class="phase" id="p5">
+      <div class="phase-head">
+        <div class="n">05</div>
+        <div><h2>Storage</h2><div class="when">Optional at first order · sized at low-level design</div></div>
+      </div>
+      <div class="guide">
+        <div class="text">
+          <p><strong>Local NVMe covers more than people expect.</strong> Each node carries about 30 TB of scratch, so a 32-node cluster has close to 1 PB of local flash. Inference and per-job staged training can run on that alone.</p>
+          <p><strong>Add a shared tier when you have shared datasets, frequent multi-node checkpointing or model artefact serving at scale.</strong> The quotes on file price roughly 1 PB usable of VAST at $2.78M including three years of subscription and service, and Dell PowerScale F710 (10 nodes, 1.54 PB raw, plus two Z9664F switches) at $4.61M including hardware and software maintenance and deployment. WEKA is the third common choice. Whichever you pick, protection is platform snapshots only unless you buy backup separately.</p>
+        </div>
+        <div class="check" data-phase="p5">
+          <div class="ch"><span>Checklist</span><span class="cnt"></span></div>
+          <label><input type="checkbox"><span><span class="t">Decision: local NVMe only, or shared tier (VAST / WEKA / PowerScale)</span></span></label>
+          <label><input type="checkbox"><span><span class="t">Usable capacity and throughput sized to checkpoint size × frequency and dataset read rate</span></span></label>
+          <label><input type="checkbox"><span><span class="t">Protocols required: NFS over RDMA, GPUDirect Storage, S3, SMB</span></span></label>
+          <label><input type="checkbox"><span><span class="t">Storage fabric ports reserved on the leaf switches; storage NICs present in every node</span></span></label>
+          <label><input type="checkbox"><span><span class="t">Backup, replication or archive bought separately if required</span></span></label>
+          <label><input type="checkbox"><span><span class="t">Subscription term and renewal cost known (VAST subscription is 38% of its line)</span></span></label>
+        </div>
+      </div>
+    </section>
+
+    <!-- PHASE 6 -->
+    <section class="phase" id="p6">
+      <div class="phase-head">
+        <div class="n">06</div>
+        <div><h2>Software and cluster management</h2><div class="when">Decide before the LLD · installed during burn-in, weeks 11 to 12</div></div>
+      </div>
+      <div class="guide">
+        <div class="text">
+          <p><strong>Head nodes are real hardware.</strong> Penguin quote five 1U Altus servers (dual EPYC 9255, 384 GB, ConnectX-8) for provisioning, scheduling, login and monitoring, plus a ClusterWare subscription licensed per node and per GPU for three years ($1.98M at 256 GPUs). The alternative is NVIDIA Base Command Manager, or an open-source stack (Slurm or Kubernetes, Prometheus and DCGM exporter, NetBox, an image server), which costs engineering time rather than licences.</p>
+          <p><strong>Define before handover:</strong> the scheduler and how training and inference share it, the observability stack for GPU and fabric telemetry, the multi-tenancy and security model, the OS image and driver baseline, and the day-2 operating model with its SLA. For IB, UFM appliances (2, with 3-year subscription) manage the subnet; for Arista, CloudVision does the same job.</p>
+        </div>
+        <div class="check" data-phase="p6">
+          <div class="ch"><span>Checklist</span><span class="cnt"></span></div>
+          <label><input type="checkbox"><span><span class="t">Cluster manager chosen: ClusterWare, Base Command Manager, or open-source</span></span></label>
+          <label><input type="checkbox"><span><span class="t">Head, login and monitoring nodes sized and in the BOM (typically 3 to 5 per scale unit)</span></span></label>
+          <label><input type="checkbox"><span><span class="t">Scheduler: Slurm, Kubernetes, or both; partitioning rule for training vs inference</span></span></label>
+          <label><input type="checkbox"><span><span class="t">OS, driver, CUDA, NCCL and firmware baseline pinned</span></span></label>
+          <label><input type="checkbox"><span><span class="t">Fabric manager: UFM for IB, CloudVision or NetQ for Ethernet</span></span></label>
+          <label><input type="checkbox"><span><span class="t">Telemetry: DCGM, fabric counters, PDU and CDU metrics, logs, alerting</span></span></label>
+          <label><input type="checkbox"><span><span class="t">Identity, tenancy and network isolation model documented</span></span></label>
+          <label><input type="checkbox"><span><span class="t">Runbooks for node replacement, GPU RMA, switch failure and power events</span></span></label>
+        </div>
+      </div>
+    </section>
+
+    <!-- PHASE 7 -->
+    <section class="phase" id="p7">
+      <div class="phase-head">
+        <div class="n">07</div>
+        <div><h2>Deployment and managed services</h2><div class="when">Deploy weeks 7 to 12 · operations from handover</div></div>
+      </div>
+      <div class="guide">
+        <div class="text">
+          <p><strong>Someone has to rack, cable, configure, burn in and then run it.</strong> Penguin price a one-off "deploy 256 GPUs" professional service at $646K and a managed service (NBD break-fix, remote support, engagement management, dashboards, storage and network, cluster management) at $1.96M per year. Over three years that is $6.5M, or 16 to 18% of the total. The alternative is an in-house team of roughly four to six people covering fabric, storage, platform and on-call, plus the OEM hardware support you already bought.</p>
+          <p><strong>Support tiers to line up:</strong> servers (NBD vs 4-hour on-site), switches (NBD replacement with same-day ship), storage (4-hour on-site is standard in the Dell quote), head nodes (3-year platform support), and the CDU (annual maintenance and quarterly water testing for five years in the Lenovo spec).</p>
+        </div>
+        <div class="check" data-phase="p7">
+          <div class="ch"><span>Checklist</span><span class="cnt"></span></div>
+          <label><input type="checkbox"><span><span class="t">Operating model chosen: OEM managed service, third party, or in-house</span></span></label>
+          <label><input type="checkbox"><span><span class="t">Deployment scope in writing: rack and stack, cabling, labelling, configuration, burn-in, acceptance tests</span></span></label>
+          <label><input type="checkbox"><span><span class="t">Support matrix per component with response time, coverage hours and who calls whom</span></span></label>
+          <label><input type="checkbox"><span><span class="t">On-site spares kit and RMA process, including lift-assist cart at the site</span></span></label>
+          <label><input type="checkbox"><span><span class="t">Monitoring and on-call rota live before first customer workload</span></span></label>
+          <label><input type="checkbox"><span><span class="t">Renewal calendar: switch licences, storage subscription, managed service, colo term</span></span></label>
+        </div>
+      </div>
+    </section>
+
+    <!-- PHASE 8 -->
+    <section class="phase" id="p8">
+      <div class="phase-head">
+        <div class="n">08</div>
+        <div><h2>Timeline, acceptance and handover</h2><div class="when">14 weeks from facility drawdown to bare-metal handover</div></div>
+      </div>
+      <div class="guide">
+        <div class="text">
+          <p><strong>Two parallel procurement tracks, one overlapped install.</strong> Servers carry an 8-week lead time; switches are usually in stock, so network installation starts at week 7 before the GPUs arrive. Rack and stack continues as servers land, then cabling, network configuration and burn-in run in sequence. Customer UAT and acceptance run together in the final fortnight, ending with handover at week 14.</p>
+          <p><strong>At 1,024 GPUs the clock is longer.</strong> Tech Directcore's Gantt starts only at contract signature plus deposit (W0), carries a 12 to 14 week allocation and procurement window for 1,024 B300s, runs data-hall readiness W1 to W12 and cabling W10 to W12 in parallel, racks and stacks at W14 to W15, builds and burns in the IB fabric at W15 to W16, and targets first availability around W16.</p>
+          <p><strong>Acceptance means numbers, not a walk-through.</strong> Every GPU passes DCGM diagnostics; NCCL all-reduce across the full cluster hits the expected bus bandwidth; every fabric link runs error-free at full rate for 48 hours; storage meets its validated read and write throughput; every PDU, BMC and console is reachable; a full node loss and a full leaf loss are simulated.</p>
+        </div>
+        <div class="check" data-phase="p8">
+          <div class="ch"><span>Checklist</span><span class="cnt"></span></div>
+          <label><input type="checkbox"><span><span class="t">Gantt agreed with milestones: drawdown complete (wk 2), network live (wk 9), servers racked (wk 10), burn-in done (wk 12), GPUs live (wk 14)</span></span></label>
+          <label><input type="checkbox"><span><span class="t">Acceptance test plan signed before install starts, with pass thresholds</span></span></label>
+          <label><input type="checkbox"><span><span class="t">Burn-in: 48 to 72 hours of GPU stress, fabric soak, storage soak</span></span></label>
+          <label><input type="checkbox"><span><span class="t">As-built documentation: rack elevations, cable schedule, IP plan, serials, firmware versions</span></span></label>
+          <label><input type="checkbox"><span><span class="t">Runbook set and monitoring handed to the operating team</span></span></label>
+          <label><input type="checkbox"><span><span class="t">Warranty start dates recorded per component; support contracts transferred if reselling</span></span></label>
+          <label><input type="checkbox"><span><span class="t">Customer onboarding: access, quotas, scheduler partitions, first job run end to end</span></span></label>
+        </div>
+      </div>
+      <div class="timeline" id="tl"></div>
+    </section>
+
+    <!-- REFERENCE -->
+    <section class="phase" id="ref" style="border-bottom:0">
+      <div class="phase-head">
+        <div class="n">REF</div>
+        <div><h2>Reference builds on file</h2><div class="when">What the source documents actually contain</div></div>
+      </div>
+      <div class="tbl" style="margin-top:18px">
+        <table>
+          <thead><tr><th>Build</th><th>Compute</th><th>Fabric</th><th>Storage</th><th>Racks</th><th class="num">Total</th></tr></thead>
+          <tbody>
+            <tr><td>Penguin Q255477<span class="pn">32 × DGX B300 · Jul 2026</span></td><td>NVIDIA DGX B300, 3-yr critical support, partner installed<span class="pn">$600,003 / node</span></td><td>Quantum-3 XDR: 12 × Q3400, 4 × SN5610, 4 × SN4700, 6 × SN2201, 2 × UFM<span class="pn">$5.88M</span></td><td>VAST ~1 PB usable<span class="pn">$2.78M</span></td><td>16 GPU + 1 spine + 2 leaf + 1 admin<span class="pn">$383K</span></td><td class="num">$36,975,667</td></tr>
+            <tr><td>Penguin Q255478<span class="pn">32 × Wistron HGX B300 · Jul 2026</span></td><td>Wistron BAE8-428, 2 × 6776P, 3 TB, 8 × 7.68 TB, BlueField-3<span class="pn">$650,372 / node</span></td><td>Arista: 34 × 7060X6-32PE, 6 × 720DT, CloudVision, 3-yr A-Care, LPO optics<span class="pn">$5.71M</span></td><td>VAST ~1 PB usable<span class="pn">$2.78M</span></td><td>16 GPU + 2 spine + 2 leaf + 1 admin<span class="pn">$402K</span></td><td class="num">$38,446,056</td></tr>
+            <tr><td>Penguin Q255493<span class="pn">32 × Dell XE9780 · Jul 2026</span></td><td>Dell XE9780, 2 × 6776P, 2 TB, 8 × 3.84 TB, iDRAC10, ProSupport Plus 4-hr<span class="pn">$688,686 / node</span></td><td>Arista, as Q255478<span class="pn">$5.71M</span></td><td>Dell PowerScale F710 ×10, 2 × Z9664F, 3-yr maintenance<span class="pn">$4.61M</span></td><td>As Q255478<span class="pn">$402K</span></td><td class="num">$41,504,529</td></tr>
+            <tr><td>Supermicro draft BOM<span class="pn">32 × HGX B300 · air and DLC</span></td><td>SYS-822GS-NB3RT (air, 4/rack) or SYS-422GS-NB3RT-LCC (DLC, 8/rack)<span class="pn">no price</span></td><td>Quantum-3: 4 leaf + 3 spine Q3400, 2 × SN5610, 2 × SN2201; BF3 to spine<span class="pn">no price</span></td><td>Not included</td><td>Air: 11 cabinets · DLC: 7 cabinets with 250 kW CDU<span class="pn">APC NetShelter 48U</span></td><td class="num">—</td></tr>
+            <tr><td>Tech Directcore BOM<span class="pn">128 × HGX B300 · 1,024 GPUs · Lisbon</span></td><td>Air-cooled HGX B300, 2 × EPYC 9555, 2.3 TB, 4 × 7.68 TB, 8 × CX-8 800G, 2 × BlueField-3 400G, NBD 3-yr<span class="pn">no price</span></td><td>Quantum-3 XDR 1:1: 16 leaf + 8 spine Q3400, 2 × UFM; 8 × SN5600 in-band/storage; 19 × SN2201 OOB; MX204 + QFX5120 + Fortigate 1800F edge<span class="pn">no price</span></td><td>VAST 1 PB usable on 12 × Gigabyte R163 (9 × 15.36 TB QLC each), 36-mo Gemini term<span class="pn">no price</span></td><td>10 CPU nodes (96 vCPU, 512 GB, 200G)<span class="pn">16-week programme</span></td><td class="num">—</td></tr>
+            <tr><td>Civo solution design<span class="pn">64 × HGX B300 · 512 GPUs</span></td><td>KR9288-E3, 2 × EPYC 9555, 1.5 TB, 8 × 3.84 TB, 8 × CX-8 + 2 × CX-7<span class="pn">no price</span></td><td>Dual-plane 800G Ethernet: 25 × 64-port leaf, 7 aggregation, 4 mgmt, SRX2300 gateway pair<span class="pn">no price</span></td><td>Optional VAST or WEKA</td><td>Single scale unit, no spine<span class="pn">14-week programme</span></td><td class="num">—</td></tr>
+            <tr><td>Lenovo B200 spec<span class="pn">32 × SR780a V3 · deployed 2025</span></td><td>HGX B200 liquid-cooled, 2 × Xeon 8570, 2 TB, 8 × 3.84 TB<span class="pn">no price</span></td><td>Quantum-2 NDR: 8 × QM9790 leaf, 4 × QM9700 spine, SN2201 OOB</td><td>Local NVMe only</td><td>6 × 42U, FS600 in-row CDU, 374 kW, 4,859 kg<span class="pn">69.6 kW per 6-node rack</span></td><td class="num">—</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="foot">Sources: Penguin Solutions order forms Q255477, Q255478, Q255493 (07/28/2026, valid 14 days, USD, freight and duties extra) · IO.NET B300 Cluster Draft BOM (Supermicro rack elevations, air and liquid) · Civo B300 512-GPU Solution Design and BOM · Tech Directcore BOMs (128-node HGX B300, IB back-end 1024, VAST 1 PB, CPU nodes, edge, Gantt) · B200 Cluster Specification (Lenovo SR780a V3) · Advanced IC and Computing &amp; Headquarters Certification V1025 (Supermicro). Colocation rates, per-node power and the Supermicro and Civo placeholders are estimates and are labelled as such in the BOM.</div>
+    </section>
+
+  </main>
+
+  <aside class="summary" id="summary">
+    <div class="head"><span class="eyebrow">Your build</span><span class="mono small" id="s-config"></span></div>
+    <div class="rows">
+      <div class="row" style="padding-top:12px"><span>Capital cost</span><span class="big" id="s-capex"></span></div>
+      <div class="row"><span class="muted">per GPU</span><span id="s-pergpu"></span></div>
+      <div class="row"><span class="muted">per node</span><span id="s-pernode"></span></div>
+    </div>
+    <div class="bar" id="s-bar"></div>
+    <div class="legend" id="s-legend"></div>
+    <div class="sec eyebrow">Monthly operating</div>
+    <div class="rows">
+      <div class="row"><span>Colocation</span><span id="s-colo"></span></div>
+      <div class="row"><span>Operations</span><span id="s-ops"></span></div>
+      <div class="row"><span>Total / month</span><span id="s-opex"></span></div>
+    </div>
+    <div class="sec eyebrow">Economics</div>
+    <div class="rows">
+      <div class="row"><span>All-in cost per GPU-hr <span class="muted small" id="s-termlbl"></span></span><span id="s-gpuhr"></span></div>
+      <div class="row"><span>Total cost over term</span><span id="s-tco"></span></div>
+    </div>
+    <div class="sec eyebrow">Physical</div>
+    <div class="rows" style="padding-bottom:12px">
+      <div class="row"><span>Racks</span><span id="s-racks"></span></div>
+      <div class="row"><span>IT load</span><span id="s-kw"></span></div>
+      <div class="row"><span>Local NVMe</span><span id="s-nvme"></span></div>
+      <div class="row"><span>Checklist</span><span id="s-check"></span></div>
+    </div>
+  </aside>
+  </div>
+</div>
+
+<script>
+(function(){
+  const $=s=>document.querySelector(s), $$=s=>Array.from(document.querySelectorAll(s));
+  const fmt=n=>'$'+Math.round(n).toLocaleString('en-US');
+  const fmtM=n=>n>=1e9?'$'+(n/1e9).toFixed(2)+'B':n>=1e6?'$'+(n/1e6).toFixed(2)+'M':fmt(n);
+  const REF=32; // nodes in the reference quotes
+
+  // ---- option catalogue (per-node prices derived from 32-node quotes unless noted) ----
+  const PLATFORMS=[
+    {id:'penguin',t:'Penguin / Wistron HGX B300',d:'BAE8-428, 2 × Xeon 6776P, 3 TB, 8 × 7.68 TB NVMe, BlueField-3, 12 × 5.5 kW PSU',unit:650371.95,basis:'Q255478',kw:13.5,u:8},
+    {id:'dgx',t:'NVIDIA DGX B300',d:'10U, 8 × 288 GB, 3-yr critical support, partner installed',unit:600002.95,basis:'Q255477',kw:14,u:10},
+    {id:'dell',t:'Dell XE9780',d:'10U, 2 × Xeon 6776P, 2 TB, 8 × 3.84 TB, iDRAC10, ProSupport Plus 4-hr',unit:688685.98,basis:'Q255493',kw:13.5,u:10},
+    {id:'smc',t:'Supermicro SYS-822GS / 422GS',d:'HGX B300, air 8U or DLC 4U; matches the io.net draft BOM elevations',unit:620000,basis:'no quote; placeholder',kw:13.5,u:8,na:true},
+    {id:'kr',t:'KR9288-E3 (Civo design)',d:'10U, 2 × EPYC 9555, 1.5 TB, 8 × 3.84 TB, 8 × CX-8 + 2 × CX-7',unit:620000,basis:'no quote; placeholder',kw:13.5,u:10,na:true},
+  ];
+  const COOLING=[
+    {id:'air2',t:'Air, 2 nodes per rack',d:'Penguin layout: 16 GPU racks per 32 nodes, 2 × 34.5 kW PDUs each',per:2,rackUnit:19140.93,basis:'Q255478 GPU rack',extra:0},
+    {id:'air4',t:'Air, 4 nodes per rack',d:'Supermicro draft BOM: 8 compute racks per 32 nodes; ~52 kW per rack',per:4,rackUnit:19140.93,basis:'Q255478 GPU rack price, io.net BOM density',extra:0},
+    {id:'dlc',t:'Direct liquid, 8 nodes per rack',d:'Supermicro DLC layout: 250 kW in-rack CDU, 52.7 kVA PDUs, facility water loop required',per:8,rackUnit:19140.93,basis:'rack price from Q255478; CDU estimated',extra:95000,extraName:'250 kW in-rack CDU, manifold, hoses, leak sensors'},
+  ];
+  const FABRICS=[
+    {id:'arista',t:'Arista 800G Ethernet',d:'7060X6-32PE leaf/spine, 720DT OOB, CloudVision, 3-yr A-Care, LPO optics + $400K cable allowance',total:4656008.48+1058990.28,basis:'Q255478 networking + optics',mgmtName:'Included (CloudVision)'},
+    {id:'ib',t:'NVIDIA Quantum-3 XDR InfiniBand',d:'Q3400-RA leaf/spine, SN5610 + SN4700 front-end, SN2201 OOB, UFM pair, 1600G optics + $400K cable allowance',total:5731183.60+144301.60,basis:'Q255477 networking + UFM'},
+    {id:'spectrum',t:'NVIDIA Spectrum-4 Ethernet',d:'SN5610 64 × 800G, Cumulus, dual-plane RoCEv2 per the io.net BOM and Civo design',total:5300000,basis:'no quote; interpolated between Arista and IB',na:true},
+  ];
+  const STORAGE=[
+    {id:'none',t:'Local NVMe only',d:'~30 TB scratch per node already in the platform price',unit:0,per:'flat',basis:'Civo design, inference or per-job staged training'},
+    {id:'vast',t:'VAST, ~1 PB usable',d:'Hardware, service and 3-year subscription',unit:2775548.35,per:'pb',basis:'Q255477 / Q255478'},
+    {id:'pscale',t:'Dell PowerScale F710, 1.54 PB raw',d:'10 × F710, 2 × Z9664F, OneFS, 3-yr HW and SW maintenance, deployment',unit:4607972.03,per:'pb',basis:'Q255493'},
+    {id:'weka',t:'WEKA, ~1 PB usable',d:'WEKApod appliance, WekaFS',unit:2800000,per:'pb',basis:'no quote; placeholder near VAST',na:true},
+  ];
+  const MGMT=[
+    {id:'cw',t:'Penguin ClusterWare',d:'5 × Altus head nodes + 3-yr Foundation licence per node and per GPU',total:2227608.50,basis:'Q255478'},
+    {id:'bcm',t:'NVIDIA Base Command Manager',d:'Same head nodes, BCM licence per node',total:252108.50+256*1200*3,basis:'head nodes Q255478; BCM licence estimated',na:true},
+    {id:'oss',t:'Open source (Slurm / K8s)',d:'Head nodes only; engineering time instead of licences',total:252108.50,basis:'head nodes Q255478'},
+  ];
+  const OPS=[
+    {id:'managed',t:'OEM managed service',d:'Deploy $646K one-off + $1.96M / yr: NBD break-fix, remote support, dashboards, cluster management',deploy:646460,yr:1955969,basis:'Q255478 OriginAI'},
+    {id:'deploy',t:'Deploy only, run it yourself',d:'Professional services deploy; in-house team for day 2',deploy:646460,yr:0,basis:'Q255478 OriginAI deploy'},
+    {id:'inhouse',t:'In-house team',d:'5 engineers fully loaded, estimated',deploy:150000,yr:1250000,basis:'estimate',na:true},
+  ];
+
+  const state={use:'train',nodes:32,platform:'penguin',cooling:'air2',fabric:'arista',storage:'vast',mgmt:'cw',ops:'managed',colo:180,util:85,term:36,custom:[]};
+  try{const s=JSON.parse(localStorage.getItem('cb.state')||'null');if(s)Object.assign(state,s);}catch(e){}
+
+  function renderChoices(id,list){
+    const el=document.getElementById(id);
+    el.innerHTML=list.map(o=>{
+      let pr='';
+      if(o.unit!==undefined && o.per!=='pb') pr=fmt(o.unit)+(id==='platform'?' / node':id==='cooling'?' / rack':'');
+      else if(o.per==='pb') pr=o.unit?fmtM(o.unit)+' per ~1 PB':'included';
+      else if(o.total!==undefined) pr=fmtM(o.total)+' at 32 nodes';
+      else if(o.yr!==undefined) pr=fmtM(o.deploy)+' + '+fmtM(o.yr)+' / yr';
+      if(o.na) pr+=' · no quote';
+      return `<div class="choice${state[id]===o.id?' on':''}${o.na?' na':''}" data-id="${o.id}" tabindex="0" role="button" aria-pressed="${state[id]===o.id}"><span class="t">${o.t}</span><span class="d">${o.d}</span><span class="pr">${pr}</span></div>`;
+    }).join('');
+    el.querySelectorAll('.choice').forEach(c=>{
+      const pick=()=>{state[id]=c.dataset.id;renderChoices(id,list);update();};
+      c.addEventListener('click',pick);
+      c.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pick();}});
+    });
+  }
+  renderChoices('platform',PLATFORMS);renderChoices('cooling',COOLING);renderChoices('fabric',FABRICS);
+  renderChoices('storage',STORAGE);renderChoices('mgmt',MGMT);renderChoices('ops',OPS);
+
+  // segmented use
+  $$('#use button').forEach(b=>{b.classList.toggle('on',b.dataset.v===state.use);b.addEventListener('click',()=>{state.use=b.dataset.v;$$('#use button').forEach(x=>x.classList.toggle('on',x===b));update();});});
+  const nodes=$('#nodes'),nodesn=$('#nodesn'),colo=$('#colo'),util=$('#util'),term=$('#term');
+  nodes.value=Math.min(640,state.nodes);nodesn.value=state.nodes;colo.value=state.colo;util.value=state.util;term.value=state.term;
+  nodes.addEventListener('input',()=>{state.nodes=+nodes.value;nodesn.value=state.nodes;update();});
+  nodesn.addEventListener('input',()=>{const v=Math.max(1,Math.min(5000,Math.round(+nodesn.value||1)));state.nodes=v;nodes.value=Math.min(640,v);update();});
+  colo.addEventListener('input',()=>{state.colo=+colo.value||0;update();});
+  util.addEventListener('input',()=>{state.util=+util.value;update();});
+  term.addEventListener('change',()=>{state.term=+term.value;update();});
+
+  // custom rows
+  function renderCustom(){
+    const el=$('#custom');
+    el.innerHTML=state.custom.map((r,i)=>`<div class="r"><input type="text" id="c-n-${i}" placeholder="Item" value="${r.n.replace(/"/g,'&quot;')}"><input type="number" id="c-u-${i}" placeholder="Unit $" value="${r.u}"><input type="number" id="c-q-${i}" placeholder="Qty" value="${r.q}"><button data-i="${i}" title="Remove">×</button></div>`).join('')||'<div class="muted small">No custom lines yet.</div>';
+    el.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',()=>{
+      const [_,k,i]=inp.id.split('-');const r=state.custom[+i];
+      if(k==='n')r.n=inp.value;else if(k==='u')r.u=+inp.value||0;else r.q=+inp.value||0;update();
+    }));
+    el.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{state.custom.splice(+b.dataset.i,1);renderCustom();update();}));
+  }
+  $('#addrow').addEventListener('click',()=>{state.custom.push({n:'',u:0,q:1});renderCustom();update();$('#custom input[type=text]:last-of-type')?.focus();});
+  $('#addpreset').addEventListener('click',()=>{
+    state.custom.push({n:'Edge routers: Juniper MX204 pair, 4 × 100GE, Junos, Care Core (Tech Directcore)',u:65000,q:2},{n:'Firewalls: Fortigate 1800F pair + QFX5120-48Y landing switches',u:60000,q:2},{n:'CPU / login / management nodes: 96 vCPU, 512 GB, 200G, NBD 3-yr',u:18000,q:10},{n:'/24 IPv4 + BGP on own ASN, anti-DDoS (annual)',u:15000,q:1},{n:'Console server / serial concentrator',u:6500,q:2},{n:'Spares kit: GPU tray, PSUs, NICs, optics',u:180000,q:1},{n:'Freight, crating and insurance (allowance)',u:120000,q:1},{n:'Import duties and tariffs (allowance)',u:0,q:1});
+    renderCustom();update();
+  });
+  renderCustom();
+
+  // ---- compute ----
+  function calc(){
+    const n=state.nodes,g=n*8,scale=n/REF;
+    const P=PLATFORMS.find(x=>x.id===state.platform),C=COOLING.find(x=>x.id===state.cooling),F=FABRICS.find(x=>x.id===state.fabric),S=STORAGE.find(x=>x.id===state.storage),M=MGMT.find(x=>x.id===state.mgmt),O=OPS.find(x=>x.id===state.ops);
+    const rows=[];
+    const add=(cat,item,qty,unit,basis,key)=>rows.push({cat,item,qty,unit,ext:qty*unit,basis,key});
+    add('Compute',P.t+(P.na?' (placeholder)':''),n,P.unit,P.basis,'compute');
+    const cRacks=Math.ceil(n/C.per);
+    const su=Math.ceil(n/64); // 64-node scale units (Civo)
+    // 32-node quotes carry 5 infra racks; Tech Directcore at 128 nodes needs ~24 IB + 8 Eth + 19 OOB switches: ~3 infra racks per 32 nodes at scale
+    const infraRacks=n<=32?5:Math.ceil(3*scale)+(su>1?Math.ceil(su/4):0);
+    // fabric tiers: linear inside one SU; add spine layer above 1 SU, core layer above 8 SUs (512 nodes)
+    const tier=su<=1?1:su<=8?1.12:1.25;
+    add('Racks & power','48U GPU rack, 2 × 34.5 kW switched PDUs, crated ('+C.t+')',cRacks,C.rackUnit,C.basis,'rack');
+    add('Racks & power','48U spine / leaf / admin rack with PDUs',infraRacks,19075.30,'Q255478 spine/leaf/admin rack','rack');
+    if(C.extra) add('Racks & power',C.extraName,cRacks,C.extra,C.basis,'rack');
+    add('Fabric',F.t+': switches, licences, support, optics, cable allowance'+(F.na?' (placeholder)':'')+(tier>1?' · '+(tier===1.12?'+12% spine layer across '+su+' scale units':'+25% spine and core layers across '+su+' scale units'):''),n,F.total/REF*tier,F.basis+', per node'+(tier>1?', tiered':''),'fabric');
+    if(S.unit){const pb=Math.max(1,Math.round(scale));add('Storage',S.t+(S.na?' (placeholder)':''),pb,S.unit,S.basis+(pb>1?', scaled to ~'+pb+' PB':''),'storage');}
+    else add('Storage','Local NVMe only (~30 TB per node, in platform price)',1,0,S.basis,'storage');
+    add('Software',M.t+(M.na?' (placeholder)':''),n,M.total/REF,M.basis+', per node','software');
+    add('Services','Deployment: rack and stack, cabling, configuration, burn-in, acceptance',g,O.deploy/256,O.basis+', per GPU','services');
+    state.custom.forEach(r=>{if(r.n||r.u)add('Custom',r.n||'(unnamed)',r.q,r.u,'your input','custom');});
+    const capex=rows.reduce((a,r)=>a+r.ext,0);
+    const kw=n*P.kw*1.08; // switches and head nodes
+    const coloMo=kw*state.colo;
+    const opsMo=(O.id==='inhouse'?O.yr*Math.max(1,Math.ceil(scale/2)):O.yr*scale)/12; // in-house team grows in steps of 64 nodes
+    const opexMo=coloMo+opsMo;
+    const hours=g*730*state.util/100;
+    const gpuhr=(capex/state.term+opexMo)/hours;
+    const tco=capex+opexMo*state.term;
+    return {rows,capex,kw,coloMo,opsMo,opexMo,gpuhr,tco,n,g,cRacks,infraRacks,su,P,C,F,S,M,O};
+  }
+
+  const COLORS={compute:'var(--ink)',fabric:'#5b7bd5',storage:'#9aa5b1',software:'#c9b26b',services:'#b07aa1',rack:'#6ab187',custom:'#e07b53'};
+  const NAMES={compute:'Compute',fabric:'Fabric',storage:'Storage',software:'Software',services:'Services',rack:'Racks',custom:'Custom'};
+
+  function fit(r){
+    const notes=[];
+    const u=state.use;
+    if(u==='train'){
+      if(r.F.id!=='ib'&&r.F.id!=='arista') notes.push('<b>Fabric.</b> Training is the case for InfiniBand or a lossless dual-plane 800G Ethernet; confirm PFC/ECN design if staying on Ethernet.');
+      else notes.push('<b>Fabric.</b> '+r.F.t+' is a good fit for synchronous training at this scale.');
+      if(r.S.id==='none') notes.push('<b>Storage.</b> Multi-node checkpointing on local NVMe alone is fragile; add a shared tier or a checkpoint target.');
+    }else if(u==='infer'){
+      if(r.F.id==='ib') notes.push('<b>Fabric.</b> Inference rarely needs XDR InfiniBand; Ethernet saves about '+fmtM((FABRICS[1].total-FABRICS[0].total)*r.n/REF)+' and gives better north-south integration.');
+      if(r.S.id!=='none') notes.push('<b>Storage.</b> Model artefact serving may be fine from local NVMe plus an object store; a full parallel filesystem is optional here.');
+      else notes.push('<b>Storage.</b> Local NVMe only is the usual choice for inference.');
+      notes.push('<b>Front-end.</b> Size the in-band network and carrier circuits for endpoint traffic, not just management.');
+    }else{
+      notes.push('<b>Partitioning.</b> Decide static vs elastic split between training and inference before the LLD; it drives the scheduler and whether the fabric is one domain or two.');
+      if(r.S.id==='none') notes.push('<b>Storage.</b> Mixed clusters almost always need the shared tier for checkpoints and shared datasets.');
+    }
+    if(r.C.id==='dlc') notes.push('<b>Site.</b> Liquid cooling needs a facility chilled-water loop, DN65 primaries and a water-quality contract; fewer racks ('+r.cRacks+' compute) but a narrower list of colos.');
+    else notes.push('<b>Site.</b> Air at '+r.C.per+' nodes per rack: '+r.cRacks+' compute racks plus '+r.infraRacks+' for spine, leaf and admin; ask the colo for '+(r.C.per*r.P.kw*1.05).toFixed(0)+' kW per rack.');
+    if(r.su>1&&r.su<=8) notes.push('<b>Scale.</b> '+r.su+' scale units: a shared spine layer is added (+12% on fabric). Tech Directcore run 1,024 GPUs as 16 leaf + 8 spine Q3400 at 1:1.');
+    if(r.su>8) notes.push('<b>Scale.</b> '+r.su+' scale units ('+r.g.toLocaleString()+' GPUs): three-tier fabric (+25%), '+(r.kw/1000).toFixed(1)+' MW of IT load, likely more than one data hall. Procurement windows stretch to 12 to 14 weeks per tranche; plan phased delivery.');
+    if(r.n>=128) notes.push('<b>Programme.</b> At 128+ nodes budget 16 weeks from contract and deposit to first availability, not 14.');
+    if(r.n<24) notes.push('<b>Scale.</b> Below about 24 nodes the fixed fabric and head-node costs make per-GPU numbers worse than the linear estimate shows.');
+    if([r.P,r.F,r.S,r.M,r.O].some(x=>x.na)) notes.push('<b>Placeholders.</b> One or more selections have no quote on file; treat that line as an estimate to replace.');
+    $('#fit').innerHTML='<div class="eyebrow">Fit for '+({train:'training',infer:'inference',mixed:'mixed training and inference'})[u]+'</div>'+notes.map(x=>'<div>'+x+'</div>').join('');
+  }
+
+  function update(){
+    const r=calc();
+    $('#nodesv').textContent=r.n.toLocaleString()+' nodes';$('#gpusv').textContent=r.g.toLocaleString()+' GPUs';$('#suv').textContent=r.su+' × 64-node scale unit'+(r.su>1?'s':'');$('#utilv').textContent=state.util+'%';
+    // BOM table
+    $('#bom tbody').innerHTML=r.rows.map(x=>`<tr><td>${x.cat}</td><td>${x.item}</td><td class="num">${x.qty.toLocaleString()}</td><td class="num">${x.unit?fmt(x.unit):'—'}</td><td class="num">${x.ext?fmt(x.ext):'—'}</td><td class="muted small">${x.basis}</td></tr>`).join('')
+      +`<tr><td colspan="4"><b>Capital total</b></td><td class="num"><b>${fmt(r.capex)}</b></td><td class="muted small">${fmt(r.capex/r.g)} per GPU</td></tr>`
+      +`<tr><td>Operating</td><td>Colocation: ${r.kw.toFixed(0)} kW × $${state.colo}/kW-mo</td><td class="num">${state.term}</td><td class="num">${fmt(r.coloMo)}</td><td class="num">${fmt(r.coloMo*state.term)}</td><td class="muted small">estimate, monthly × term</td></tr>`
+      +`<tr><td>Operating</td><td>${r.O.t}${r.O.na?' (placeholder)':''}</td><td class="num">${state.term}</td><td class="num">${fmt(r.opsMo)}</td><td class="num">${fmt(r.opsMo*state.term)}</td><td class="muted small">${r.O.basis}, monthly × term</td></tr>`;
+    // summary
+    $('#s-config').textContent=r.n.toLocaleString()+'N · '+r.g.toLocaleString()+' GPU';
+    $('#s-capex').textContent=fmtM(r.capex);
+    $('#s-pergpu').textContent=fmt(r.capex/r.g);
+    $('#s-pernode').textContent=fmt(r.capex/r.n);
+    $('#s-colo').textContent=fmt(r.coloMo);$('#s-ops').textContent=fmt(r.opsMo);$('#s-opex').textContent=fmt(r.opexMo);
+    $('#s-gpuhr').textContent='$'+r.gpuhr.toFixed(2);$('#s-termlbl').textContent='('+state.term+' mo, '+state.util+'% util)';
+    $('#s-tco').textContent=fmtM(r.tco);
+    $('#s-racks').textContent=(r.cRacks+r.infraRacks)+' ('+r.cRacks+' compute)';
+    $('#s-kw').textContent=r.kw>=1000?(r.kw/1000).toFixed(1)+' MW':r.kw.toFixed(0)+' kW';
+    $('#s-nvme').textContent=(r.n*30/1000).toFixed(1)+' PB';
+    const by={};r.rows.forEach(x=>by[x.key]=(by[x.key]||0)+x.ext);
+    $('#s-bar').innerHTML=Object.keys(by).filter(k=>by[k]>0).map(k=>`<i style="width:${by[k]/r.capex*100}%;background:${COLORS[k]}"></i>`).join('');
+    $('#s-legend').innerHTML=Object.keys(by).filter(k=>by[k]>0).map(k=>`<span><i style="background:${COLORS[k]}"></i>${NAMES[k]} ${(by[k]/r.capex*100).toFixed(0)}%</span>`).join('');
+    fit(r);
+    try{localStorage.setItem('cb.state',JSON.stringify(state));}catch(e){}
+  }
+
+  $('#copy').addEventListener('click',()=>{
+    const r=calc();
+    const lines=[`io.net cluster builder — ${r.n} nodes / ${r.g} GPUs`,''];
+    r.rows.forEach(x=>lines.push(`${x.cat.padEnd(14)} ${x.item}  ×${x.qty}  @ ${fmt(x.unit)}  = ${fmt(x.ext)}   [${x.basis}]`));
+    lines.push('',`Capital total: ${fmt(r.capex)}  (${fmt(r.capex/r.g)} per GPU)`,`Colocation: ${fmt(r.coloMo)}/mo at ${r.kw.toFixed(0)} kW`,`Operations: ${fmt(r.opsMo)}/mo`,`All-in cost per GPU-hr over ${state.term} mo at ${state.util}% utilisation: $${r.gpuhr.toFixed(2)}`);
+    const txt=lines.join('\n');
+    const done=()=>{$('#copy').textContent='Copied';setTimeout(()=>$('#copy').textContent='Copy as text',1500);};
+    if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(txt).then(done,()=>{});
+  });
+  $('#reset').addEventListener('click',()=>{try{localStorage.removeItem('cb.state');localStorage.removeItem('cb.checks');}catch(e){}location.reload();});
+
+  // ---- checklists ----
+  let checks={};try{checks=JSON.parse(localStorage.getItem('cb.checks')||'{}');}catch(e){}
+  function countChecks(){
+    let t=0,d=0;
+    $$('.check').forEach(c=>{const ins=c.querySelectorAll('input');const dn=Array.from(ins).filter(i=>i.checked).length;t+=ins.length;d+=dn;c.querySelector('.cnt').textContent=dn+' / '+ins.length;});
+    $('#s-check').textContent=d+' / '+t;
+  }
+  $$('.check').forEach(c=>{
+    const ph=c.dataset.phase;
+    c.querySelectorAll('label').forEach((l,i)=>{
+      const inp=l.querySelector('input');const key=ph+'.'+i;inp.id='ck-'+key;
+      if(checks[key]){inp.checked=true;l.classList.add('done');}
+      inp.addEventListener('change',()=>{l.classList.toggle('done',inp.checked);checks[key]=inp.checked;try{localStorage.setItem('cb.checks',JSON.stringify(checks));}catch(e){}countChecks();});
+    });
+  });
+
+  // ---- timeline ----
+  const tl=$('#tl');
+  const weeks=Array.from({length:14},(_,i)=>`<div class="w">w${i+1}</div>`).join('');
+  const rowsTl=[
+    ['Facility drawdown, compliance',1,2],['OEM order placed',2,2],['Server manufacturing and logistics',3,10],['Network equipment delivery',3,6],
+    ['Network install, rack and stack',7,9],['Servers racked',9,11],['Cabling and network config',9,12],['Burn-in',11,12],['UAT and acceptance',13,14],['Handover',14,14]
+  ];
+  tl.innerHTML=weeks+rowsTl.map(([name,a,b])=>Array.from({length:14},(_,i)=>{const w=i+1;const on=w>=a&&w<=b;return `<div class="t${on?' on':''}" title="${name}">${w===a?name:''}</div>`;}).join('')).join('');
+
+  update();countChecks();
+})();
+</script>
+</body>
+</html>
