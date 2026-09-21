@@ -183,6 +183,7 @@ td .pn{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);display:block
       <a href="#p6">Software</a>
       <a href="#p7">Services</a>
       <a href="#p8">Handover</a>
+      <a href="#market">Supply market</a>
       <a href="#ref">Reference builds</a>
     </nav>
   </div>
@@ -195,7 +196,7 @@ td .pn{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);display:block
     </div>
     <div class="facts">
       <div><span class="k">Reference builds on file</span><span class="v">32, 64, 128 nodes</span></div>
-      <div><span class="k">Quoted all-in, 32 × HGX B300</span><span class="v">$36.9M to $41.5M</span></div>
+      <div><span class="k">HGX B300 node, market range</span><span class="v">$558K to $722K</span></div>
       <div><span class="k">Typical programme</span><span class="v">14 weeks</span></div>
       <div><span class="k">Power per compute rack</span><span class="v">up to 69 kW</span></div>
     </div>
@@ -237,7 +238,14 @@ td .pn{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);display:block
 
         <div class="opt">
           <div class="lab"><h3>Compute platform</h3><p>Per-node price includes GPUs, CPUs, memory, local NVMe, NICs and 3-year support.</p></div>
-          <div class="choices" id="platform"></div>
+          <div>
+            <div class="choices" id="platform"></div>
+            <div class="field" style="margin-top:10px">
+              <label for="market">Or price from a market offer</label>
+              <select id="market" style="width:auto;max-width:100%"></select>
+              <span class="muted small" id="marketlead"></span>
+            </div>
+          </div>
         </div>
 
         <div class="opt">
@@ -360,6 +368,7 @@ td .pn{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);display:block
         <div class="text">
           <p><strong>All the B300 options are the same 8-GPU HGX baseboard in a different chassis.</strong> What changes is the host side (Intel Xeon 6 6776P or AMD EPYC Turin), memory (2.3 to 3 TB), the NIC arrangement, support tier and price. NVIDIA DGX B300 is the reference, with NVIDIA's own support and mandatory partner installation. Dell XE9780 adds iDRAC, secure component verification and ProSupport Plus with 4-hour mission-critical response. Penguin's Wistron HGX is the lowest-cost OEM route with Penguin-integrated racks. Supermicro and the KR9288 in the Civo design are alternatives without a price on file.</p>
           <p><strong>Per-node configuration to hold constant across vendors:</strong> 8 × B300 (288 GB HBM3e each), 2 CPUs, 24 to 32 DIMMs of DDR5-6400, 8 × 3.84 TB NVMe scratch, 2 × 960 GB M.2 boot in RAID 1, 8 × ConnectX-8 (one per GPU) for the compute fabric, and separate NICs for storage and front-end. Power supplies: 6+6 redundant at 3,200 W, or 12 × 5,500 W on the Wistron chassis.</p>
+          <p><strong>Where the market sits (September 2026):</strong> HGX B300 nodes are being offered between $558K and $722K per server depending on host CPU, memory (2 TB vs 3 TB), NIC set and support tier, with allocations from 32 to 300 units and lead times from 3 weeks to 16 weeks after NVIDIA and end-user approval. The full list, with lead times, is in the <a href="#market">supply market</a> section and can be selected in the builder.</p>
           <div class="note"><b>Ask each OEM to quote the identical spec sheet.</b> The three quotes on file differ by $88,683 per node between lowest and highest, which is $2.8M across 32 nodes, before the difference in support terms.</div>
         </div>
         <div class="check" data-phase="p2">
@@ -526,6 +535,22 @@ td .pn{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);display:block
       <div class="timeline" id="tl"></div>
     </section>
 
+    <!-- MARKET -->
+    <section class="phase" id="market">
+      <div class="phase-head">
+        <div class="n">MKT</div>
+        <div><h2>Supply market, September 2026</h2><div class="when">Per-server offers for HGX B300 8-GPU nodes and GB300 NVL72, with quantity and lead time as quoted. Select any row in the builder above.</div></div>
+      </div>
+      <div class="guide" style="grid-template-columns:1fr">
+        <div class="text" style="max-width:70ch">
+          <p><strong>Read the lead time with the price.</strong> The spread on a like-for-like HGX B300 node is $558K to $720K, but the cheap end often carries "reconfirmation required" or "assembly and CPU inclusion to be clarified", and every allocation is gated on NVIDIA and end-user approval. A firm 8 to 9 week delivery at $605K beats an indicative $565K that may not exist by the time the PO is cut.</p>
+          <p><strong>GB300 NVL72 is a different unit of purchase.</strong> One rack is 72 GPUs at $6.02M, about $83.6K per GPU against $70K to $80K per GPU for HGX B300 nodes, and it needs liquid cooling and 120 kW+ per rack. Switch trays are sold separately on a full-lot basis.</p>
+        </div>
+      </div>
+      <div class="tbl" style="margin-top:18px"><table id="mkt"><thead><tr><th>Configuration</th><th>Vendor</th><th class="num">Qty</th><th class="num">Per server</th><th class="num">Per GPU</th><th>Lead time</th><th></th></tr></thead><tbody></tbody></table></div>
+      <div class="foot" style="padding-top:12px">Offers compiled by Prakarsh Pathak from supplier conversations, September 2026: a broker list covering Supermicro, Lenovo, Gigabyte, Pegatron and unnamed HGX OEMs, plus direct indicative Gigabyte pricing. OEMs release final specs and pricing only after NVIDIA compliance forms are completed. Prices are per server unless stated, exclude racks, fabric, storage and services, and are subject to reconfirmation where noted.</div>
+    </section>
+
     <!-- REFERENCE -->
     <section class="phase" id="ref" style="border-bottom:0">
       <div class="phase-head">
@@ -624,7 +649,25 @@ td .pn{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);display:block
     {id:'inhouse',t:'In-house team',d:'5 engineers fully loaded, estimated',deploy:150000,yr:1250000,basis:'estimate',na:true},
   ];
 
-  const state={use:'train',nodes:32,platform:'penguin',cooling:'air2',fabric:'arista',storage:'vast',mgmt:'cw',ops:'managed',colo:180,util:85,term:36,custom:[]};
+  const SUPPLY=[
+    {t:'HGX B300, Intel, 2 TB',d:'8 × B300 288 GB, dual Xeon / 128 cores, enterprise NVMe, NVIDIA networking, 3-yr on-site NBD',q:'Limited allocation',u:575000,lead:'3 to 4 weeks after NVIDIA and end-user approval',v:'OEM to be confirmed',ch:'Broker'},
+    {t:'HGX B300, Intel, 3 TB+',d:'Dual Xeon 6, 2 × NVMe, 2 × BlueField-3 400G, 8 × 800G back-end, air cooled, 3-yr hardware warranty',q:'Limited allocation',u:633000,lead:'Under 8 weeks including approval',v:'OEM to be confirmed',ch:'Broker'},
+    {t:'HGX B300, AMD, 3 TB',d:'Dual EPYC 9575F, DDR5-6400, 960 GB M.2, 8-port 800GbE/XDR800, redundant 6,600 W Titanium PSUs',q:'Up to 256',u:605000,lead:'128 in 8 to 9 weeks; 256 in 12 to 14 weeks',v:'OEM to be confirmed',ch:'Broker'},
+    {t:'Supermicro SYS-822GS-NB3RT-02-G2',d:'Dual Xeon 6776P, 2 TB DDR5-6400, 960 GB M.2, BlueField-3 B3220, 8-port 800G IB or 16-port 400GbE',q:'200',u:565000,lead:'Previously 10 days; reconfirmation required',v:'Supermicro',ch:'Broker'},
+    {t:'Supermicro SYS-822GS-NB3RT-01-G2 GOLD',d:'Dual Intel 64-core 2.4 GHz, 2 TB DDR5, DCMS',q:'300',u:586000,lead:'Several weeks after approval; reconfirmation required',v:'Supermicro',ch:'Broker'},
+    {t:'Supermicro AS-8126GS-NB3RT-01-G2 GOLD',d:'Dual AMD 64-core 3.3 GHz, 3 TB DDR5, 8U',q:'200',u:660000,lead:'Previously near-term; reconfirmation required',v:'Supermicro',ch:'Broker'},
+    {t:'Lenovo SR680a V4',d:'Dual Xeon 6740P 48-core, 2 TB DDR5-6400, 8 × 3.84 TB + 2 × 960 GB, 2 × ConnectX-8 and BlueField-3 B3220',q:'128',u:665000,lead:'Allocation and ship date to be reconfirmed',v:'Lenovo',ch:'Broker'},
+    {t:'B300, 2 TB configuration',d:'Detailed BOM on request',q:'32',u:590000,lead:'Indicative; configuration, pricing and delivery pending',v:'OEM to be confirmed',ch:'Broker'},
+    {t:'B300, 3 TB configuration',d:'Detailed BOM on request',q:'44',u:610000,lead:'Indicative; configuration, pricing and delivery pending',v:'OEM to be confirmed',ch:'Broker'},
+    {t:'Gigabyte G894-SD3-AAX7, Intel',d:'24 × 96 GB, 4 × 3.84 TB + 2 × 960 GB, 8 × 800G ConnectX-8 and 2 × ConnectX-7',q:'Volume allocation to confirm',u:558205,lead:'About 16 weeks; assembly and CPU inclusion to be clarified',v:'Gigabyte',ch:'Broker'},
+    {t:'Gigabyte G894-ZD3-AAX7, AMD',d:'32 × 128 GB, 4 × 3.84 TB + 2 × 960 GB, 8 × 800G ConnectX-8 and 2 × ConnectX-7',q:'Volume allocation to confirm',u:627983,lead:'About 16 weeks; assembly and CPU inclusion to be clarified',v:'Gigabyte',ch:'Broker'},
+    {t:'Lenovo AI Express SR680a V4',d:'Dual Xeon 6776P, 2 TB, BlueField-3 B3240, 8 × 3.84 TB + 2 × 960 GB, 3-yr support',q:'48',u:722000,lead:'October release; potential November delivery (budgetary, low $720Ks)',v:'Lenovo',ch:'Broker'},
+    {t:'Gigabyte G894-ZD3-AAX7, AMD, 2 TB',d:'HGX B300, indicative configuration; final spec and price released only after NVIDIA compliance forms',q:'TBC',u:546000,lead:'Indicative; awaiting compliance forms',v:'Gigabyte',ch:'Direct, indicative'},
+    {t:'Gigabyte G894-ZD3-AAX7, AMD, 3 TB',d:'HGX B300, indicative configuration; final spec and price released only after NVIDIA compliance forms',q:'TBC',u:577000,lead:'Indicative; awaiting compliance forms',v:'Gigabyte',ch:'Direct, indicative'},
+    {t:'Pegatron GB300 NVL72 system',d:'72 × GB300 per rack, liquid cooled; rack-scale, not an 8-GPU node',q:'98',u:6020000,gpus:72,lead:'5 to 6 weeks, subject to reconfirmation',rack:true,v:'Pegatron',ch:'Broker'},
+    {t:'GB300 NVLink switch trays, 920-9K33R-00MV-GS0',d:'Switch hardware only, full-lot basis',q:'107',u:49000,gpus:0,lead:'Previously immediate; reconfirmation required',rack:true,v:'NVIDIA',ch:'Broker'},
+  ];
+  const state={use:'train',market:'',nodes:32,platform:'penguin',cooling:'air2',fabric:'arista',storage:'vast',mgmt:'cw',ops:'managed',colo:180,util:85,term:36,custom:[]};
   try{const s=JSON.parse(localStorage.getItem('cb.state')||'null');if(s)Object.assign(state,s);}catch(e){}
 
   function renderChoices(id,list){
@@ -636,7 +679,7 @@ td .pn{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);display:block
       else if(o.total!==undefined) pr=fmtM(o.total)+' at 32 nodes';
       else if(o.yr!==undefined) pr=fmtM(o.deploy)+' + '+fmtM(o.yr)+' / yr';
       if(o.na) pr+=' · no quote';
-      return `<div class="choice${state[id]===o.id?' on':''}${o.na?' na':''}" data-id="${o.id}" tabindex="0" role="button" aria-pressed="${state[id]===o.id}"><span class="t">${o.t}</span><span class="d">${o.d}</span><span class="pr">${pr}</span></div>`;
+      return `<div class="choice${state[id]===o.id&&!(id==='platform'&&state.market!=='')?' on':''}${o.na?' na':''}" data-id="${o.id}" tabindex="0" role="button" aria-pressed="${state[id]===o.id}"><span class="t">${o.t}</span><span class="d">${o.d}</span><span class="pr">${pr}</span></div>`;
     }).join('');
     el.querySelectorAll('.choice').forEach(c=>{
       const pick=()=>{state[id]=c.dataset.id;renderChoices(id,list);update();};
@@ -644,6 +687,13 @@ td .pn{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);display:block
       c.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pick();}});
     });
   }
+  // market table + select
+  $('#mkt tbody').innerHTML=SUPPLY.map((o,i)=>`<tr><td>${o.t}<span class="pn">${o.d}</span></td><td>${o.v}<span class="pn">${o.ch}</span></td><td class="num">${o.q}</td><td class="num">${fmt(o.u)}${o.rack?' / unit':''}</td><td class="num">${o.gpus===0?'—':fmt(o.u/(o.gpus||8))}</td><td class="small">${o.lead}</td><td>${o.rack?'':`<button class="btn ghost" data-m="${i}">Use</button>`}</td></tr>`).join('');
+  $('#mkt').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{state.market=b.dataset.m;$('#market').value=state.market;renderChoices('platform',PLATFORMS);update();document.getElementById('build').scrollIntoView({behavior:'smooth'});}));
+  const mk=$('#market');
+  mk.innerHTML='<option value="">None (use a card above)</option>'+SUPPLY.filter(o=>!o.rack).map((o,i)=>`<option value="${i}">${o.t} · ${fmt(o.u)} · ${o.v}</option>`).join('');
+  mk.value=state.market;
+  mk.addEventListener('change',()=>{state.market=mk.value;renderChoices('platform',PLATFORMS);update();});
   renderChoices('platform',PLATFORMS);renderChoices('cooling',COOLING);renderChoices('fabric',FABRICS);
   renderChoices('storage',STORAGE);renderChoices('mgmt',MGMT);renderChoices('ops',OPS);
 
@@ -677,7 +727,8 @@ td .pn{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);display:block
   // ---- compute ----
   function calc(){
     const n=state.nodes,g=n*8,scale=n/REF;
-    const P=PLATFORMS.find(x=>x.id===state.platform),C=COOLING.find(x=>x.id===state.cooling),F=FABRICS.find(x=>x.id===state.fabric),S=STORAGE.find(x=>x.id===state.storage),M=MGMT.find(x=>x.id===state.mgmt),O=OPS.find(x=>x.id===state.ops);
+    const MK=state.market!==''?SUPPLY[+state.market]:null;
+    const P=MK?{id:'market',t:MK.t+' (market offer)',d:MK.d,unit:MK.u,basis:MK.v+' via '+MK.ch.toLowerCase()+', Sept 2026; '+MK.lead,kw:13.5,u:8,na:false}:PLATFORMS.find(x=>x.id===state.platform),C=COOLING.find(x=>x.id===state.cooling),F=FABRICS.find(x=>x.id===state.fabric),S=STORAGE.find(x=>x.id===state.storage),M=MGMT.find(x=>x.id===state.mgmt),O=OPS.find(x=>x.id===state.ops);
     const rows=[];
     const add=(cat,item,qty,unit,basis,key)=>rows.push({cat,item,qty,unit,ext:qty*unit,basis,key});
     add('Compute',P.t+(P.na?' (placeholder)':''),n,P.unit,P.basis,'compute');
@@ -732,12 +783,14 @@ td .pn{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);display:block
     if(r.su>8) notes.push('<b>Scale.</b> '+r.su+' scale units ('+r.g.toLocaleString()+' GPUs): three-tier fabric (+25%), '+(r.kw/1000).toFixed(1)+' MW of IT load, likely more than one data hall. Procurement windows stretch to 12 to 14 weeks per tranche; plan phased delivery.');
     if(r.n>=128) notes.push('<b>Programme.</b> At 128+ nodes budget 16 weeks from contract and deposit to first availability, not 14.');
     if(r.n<24) notes.push('<b>Scale.</b> Below about 24 nodes the fixed fabric and head-node costs make per-GPU numbers worse than the linear estimate shows.');
+    if(state.market!==''){const o=SUPPLY[+state.market];const qn=parseInt(o.q);if(!isNaN(qn)&&r.n>qn)notes.push('<b>Allocation.</b> This offer is for '+qn+' servers; you need '+r.n+'. Split across suppliers or expect a second tranche on a longer lead time.');if(/reconfirm|pending|clarif|indicative/i.test(o.lead))notes.push('<b>Lead time.</b> This offer needs reconfirmation before it can anchor a schedule; a firm 8 to 9 week offer at a slightly higher price may be the safer plan.');}
     if([r.P,r.F,r.S,r.M,r.O].some(x=>x.na)) notes.push('<b>Placeholders.</b> One or more selections have no quote on file; treat that line as an estimate to replace.');
     $('#fit').innerHTML='<div class="eyebrow">Fit for '+({train:'training',infer:'inference',mixed:'mixed training and inference'})[u]+'</div>'+notes.map(x=>'<div>'+x+'</div>').join('');
   }
 
   function update(){
     const r=calc();
+    $('#marketlead').textContent=state.market!==''?'Lead: '+SUPPLY[+state.market].lead+' · qty '+SUPPLY[+state.market].q:'';
     $('#nodesv').textContent=r.n.toLocaleString()+' nodes';$('#gpusv').textContent=r.g.toLocaleString()+' GPUs';$('#suv').textContent=r.su+' × 64-node scale unit'+(r.su>1?'s':'');$('#utilv').textContent=state.util+'%';
     // BOM table
     $('#bom tbody').innerHTML=r.rows.map(x=>`<tr><td>${x.cat}</td><td>${x.item}</td><td class="num">${x.qty.toLocaleString()}</td><td class="num">${x.unit?fmt(x.unit):'—'}</td><td class="num">${x.ext?fmt(x.ext):'—'}</td><td class="muted small">${x.basis}</td></tr>`).join('')
