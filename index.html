@@ -104,6 +104,12 @@ td .pn{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);display:block
 .opt:last-child{border-bottom:0}
 .opt .lab h3{font-size:14px}
 .opt .lab p{font-size:12px;color:var(--ink-2);margin-top:3px}
+.hall{border:1px solid var(--rule);background:var(--wash);overflow-x:auto}
+.hall svg{display:block;width:100%;height:auto;font-family:var(--mono);font-size:7px}
+.hall .rk{animation:pop .35s cubic-bezier(.2,.8,.2,1) both}
+@keyframes pop{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.hall .flow{stroke-dasharray:4 4;animation:flow 1s linear infinite}
+@keyframes flow{to{stroke-dashoffset:-8}}
 .choices{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
 .choice{border:1px solid var(--rule);padding:10px 12px;cursor:pointer;display:grid;gap:3px;background:var(--paper)}
 .choice:hover{border-color:var(--ink-3)}
@@ -244,6 +250,11 @@ td .pn{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);display:block
         <div class="opt">
           <div class="lab"><h3>Cooling</h3><p>Decides node density per rack, and whether the colo needs a facility water loop.</p></div>
           <div class="choices" id="cooling"></div>
+        </div>
+
+        <div class="opt">
+          <div class="lab"><h3>Data hall</h3><p>Builds as you configure. Each rack fills with nodes at the chosen density; liquid cooling adds a CDU per rack and a facility water loop.</p><p id="hall-cap"></p></div>
+          <div class="hall"><svg id="hall" xmlns="http://www.w3.org/2000/svg"></svg></div>
         </div>
 
         <div class="opt">
@@ -780,6 +791,38 @@ td .pn{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);display:block
     $('#fit').innerHTML='<div class="eyebrow">Fit for '+({train:'training',infer:'inference',mixed:'mixed training and inference'})[u]+'</div>'+notes.map(x=>'<div>'+x+'</div>').join('');
   }
 
+  // Floor plan: one tile per rack, nodes fill at cooling density. ponytail: caps at 96 drawn racks, the caption says how many more.
+  function drawHall(r){
+    const MAX=96,per=r.C.per,dlc=r.C.id==='dlc',W=44,H=60,G=6;
+    const racks=[];
+    for(let i=0;i<r.cRacks;i++) racks.push({k:'c',n:Math.min(per,r.n-i*per)});
+    for(let i=0;i<r.infraRacks;i++) racks.push({k:i===0?'spine':i===1?'leaf':i<r.infraRacks-1?'infra':'admin'});
+    const shown=racks.slice(0,MAX),COLS=Math.min(16,Math.max(8,shown.length)),rows=Math.ceil(shown.length/COLS);
+    const rowH=H+G+(dlc?10:14),w=COLS*(W+G)+G,h=rows*rowH+G+8;
+    const lbl={spine:'SPINE',leaf:'LEAF',infra:'INFRA',admin:'ADMIN'};
+    let out=`<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">`;
+    for(let ri=0;ri<rows;ri++){const y=G+ri*rowH;
+      if(dlc) out+=`<line class="flow" x1="${G}" y1="${y+H+6}" x2="${w-G}" y2="${y+H+6}" stroke="#5b7bd5" stroke-width="2"/>`;
+      else out+=`<rect x="${G}" y="${y+H+3}" width="${w-2*G}" height="8" fill="none" stroke="var(--ink-3)" stroke-dasharray="2 2"/><text x="${G+3}" y="${y+H+9.5}" fill="var(--ink-2)" font-size="6">HOT AISLE CONTAINMENT</text>`;
+    }
+    shown.forEach((k,i)=>{
+      const x=G+(i%COLS)*(W+G),y=G+Math.floor(i/COLS)*rowH;
+      out+=`<g class="rk" style="animation-delay:${Math.min(i,40)*25}ms"><rect x="${x}" y="${y}" width="${W}" height="${H}" fill="var(--paper)" stroke="var(--ink)" stroke-width=".8"/>`;
+      if(k.k==='c'){
+        const slotH=(H-8-(dlc?10:0))/per;
+        for(let j=0;j<k.n;j++) out+=`<rect x="${x+3}" y="${y+3+j*slotH}" width="${W-6}" height="${slotH-1.5}" fill="var(--ink)"/>`;
+        for(let j=k.n;j<per;j++) out+=`<rect x="${x+3}" y="${y+3+j*slotH}" width="${W-6}" height="${slotH-1.5}" fill="none" stroke="var(--rule)"/>`;
+        if(dlc) out+=`<rect x="${x+3}" y="${y+H-13}" width="${W-6}" height="8" fill="#5b7bd5"/><text x="${x+W/2}" y="${y+H-7}" fill="#fff" text-anchor="middle" font-size="5.5">CDU 250kW</text>`;
+        out+=`<text x="${x+W/2}" y="${y+H-1.5}" fill="var(--ink-2)" text-anchor="middle" font-size="5.5">${k.n*8} GPU</text>`;
+      } else {
+        out+=`<rect x="${x+3}" y="${y+3}" width="${W-6}" height="${H-6}" fill="#6ab187" opacity=".35"/><text x="${x+W/2}" y="${y+H/2+2}" fill="var(--ink)" text-anchor="middle" font-size="6">${lbl[k.k]}</text>`;
+      }
+      out+='</g>';
+    });
+    $('#hall').outerHTML=out.replace('<svg','<svg id="hall"')+'</svg>';
+    const kwRack=dlc?(per*r.P.kw*1.05).toFixed(0):(per*r.P.kw*1.05).toFixed(0);
+    $('#hall-cap').textContent=`${r.cRacks} compute + ${r.infraRacks} infra racks · ${kwRack} kW per compute rack · ${dlc?'facility chilled-water loop':'cold/hot aisle containment'}`+(racks.length>MAX?` · ${racks.length-MAX} more racks not drawn`:'');
+  }
   function update(){
     const r=calc();
     $('#marketlead').textContent=state.market!==''?'Lead: '+SUPPLY[+state.market].lead+' · qty '+SUPPLY[+state.market].q:'';
@@ -803,7 +846,7 @@ td .pn{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);display:block
     const by={};r.rows.forEach(x=>by[x.key]=(by[x.key]||0)+x.ext);
     $('#s-bar').innerHTML=Object.keys(by).filter(k=>by[k]>0).map(k=>`<i style="width:${by[k]/r.capex*100}%;background:${COLORS[k]}"></i>`).join('');
     $('#s-legend').innerHTML=Object.keys(by).filter(k=>by[k]>0).map(k=>`<span><i style="background:${COLORS[k]}"></i>${NAMES[k]} ${(by[k]/r.capex*100).toFixed(0)}%</span>`).join('');
-    fit(r);
+    fit(r);drawHall(r);
     try{localStorage.setItem('cb.state',JSON.stringify(state));}catch(e){}
   }
 
