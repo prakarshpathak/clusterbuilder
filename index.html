@@ -689,10 +689,37 @@ td .pn{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);display:block
     {id:'dlc',t:'Direct liquid, 8 nodes per rack',d:'Supermicro DLC layout: 250 kW in-rack CDU, 52.7 kVA PDUs, facility water loop required',per:8,rackUnit:19140.93,basis:'rack price from Q255478; CDU estimated',extra:95000,extraName:'250 kW in-rack CDU, manifold, hoses, leak sensors'},
   ];
   const FABRICS=[
-    {id:'arista',t:'Arista 800G Ethernet',d:'7060X6-32PE leaf/spine, 720DT OOB, CloudVision, 3-yr A-Care, LPO optics + $400K cable allowance',total:4656008.48+1058990.28,basis:'Q255478 networking + optics',mgmtName:'Included (CloudVision)'},
-    {id:'ib',t:'NVIDIA Quantum-3 XDR InfiniBand',d:'Q3400-RA leaf/spine, SN5610 + SN4700 front-end, SN2201 OOB, UFM pair, 1600G optics + $400K cable allowance',total:5731183.60+144301.60,basis:'Q255477 networking + UFM'},
-    {id:'spectrum',t:'NVIDIA Spectrum-4 Ethernet',d:'SN5610 64 × 800G, Cumulus, dual-plane RoCEv2 per the io.net BOM and Civo design',total:5300000,basis:'no quote; interpolated between Arista and IB',na:true},
+    {id:'arista',t:'Arista 800G Ethernet',d:'7060X6-32PE leaf/spine, 720DT OOB, CloudVision, 3-yr A-Care, LPO optics + $400K cable allowance',basis:'Q255478 unit prices',mgmtName:'Included (CloudVision)',items:[
+      {t:'Arista 7060X6-32PE, 32 × 800G, with L3 licence',q:34,per:'n',int:1,tier:1,unit:40778.54+4938.54,basis:'Q255478'},
+      {t:'CloudVision + A-Care, 36 months per 7060X6',q:34,per:'n',int:1,tier:1,unit:36*(181.85+449.15),basis:'Q255478, recurring'},
+      {t:'Arista 720DT-48S OOB with licence, CloudVision and A-Care',q:6,per:'n',int:1,unit:2467.90+466.34+36*(40.98+14.15),basis:'Q255478'},
+      {t:'LPO 800G DR8 / 2DR4 linear optics',q:1008/256,per:'g',int:1,tier:1,unit:2281.46,basis:'Q255478 promo'},
+      {t:'800G 2DR4 finned OSFP, front-end and storage',q:1,per:'g',int:1,unit:2128.88,basis:'Q255478'},
+      {t:'400G DR4 QSFP112',q:74,per:'n',int:1,unit:1540.50,basis:'Q255478'},
+      {t:'Cables and structured fibre, placeholder',q:1,per:'n',unit:400000,basis:'Q255478 TBD once layouts are confirmed'}]},
+    {id:'ib',t:'NVIDIA Quantum-3 XDR InfiniBand',d:'Q3400-RA leaf/spine, SN5610 + SN4700 front-end, SN2201 OOB, UFM pair, 1600G optics + $400K cable allowance',basis:'Q255477 unit prices',items:[
+      {t:'NVIDIA Q3400-RA Quantum-3 XDR, 144 × 800G, 3-yr support',q:12,per:'n',int:1,tier:1,unit:130151.83,basis:'Q255477'},
+      {t:'NVIDIA SN5610 front-end, Cumulus 3-yr + NBD support',q:4,per:'n',int:1,unit:61458.05+14135.11,basis:'Q255477'},
+      {t:'NVIDIA SN4700 400GbE, 3-yr support',q:4,per:'n',int:1,unit:36104.50,basis:'Q255477'},
+      {t:'NVIDIA SN2201 OOB, 3-yr support + NetQ',q:6,per:'n',int:1,unit:4781.50,basis:'Q255477'},
+      {t:'UFM Enterprise pair, 5-yr support, 36-mo subscription, rails',q:1,per:'set',int:1,unit:2*48443.54+2*19986.98+32*214.41+2*289.72,basis:'Q255477, one pair per 500 nodes'},
+      {t:'1600G twin-port 2DR4 OSFP, leaf and spine',q:864/256,per:'g',int:1,tier:1,unit:2530.91,basis:'Q255477'},
+      {t:'800G DR4 flat-top OSFP, node side',q:1,per:'g',int:1,unit:1786.83,basis:'Q255477'},
+      {t:'800G 2DR4 finned OSFP, front-end and storage',q:1,per:'g',int:1,unit:2128.88,basis:'Q255477'},
+      {t:'400G DR4 QSFP112',q:68,per:'n',int:1,unit:1540.50,basis:'Q255477'},
+      {t:'Cables and structured fibre, placeholder',q:1,per:'n',unit:400000,basis:'Q255477 TBD once layouts are confirmed'}]},
+    {id:'spectrum',t:'NVIDIA Spectrum-4 Ethernet',d:'SN5610 64 × 800G, Cumulus, dual-plane RoCEv2 per the io.net BOM and Civo design',basis:'SN5610 unit from Q255477; switch count interpolated',na:true,items:[
+      {t:'NVIDIA SN5610 leaf/spine, Cumulus 3-yr + NBD support',q:12,per:'n',int:1,tier:1,unit:61458.05+14135.11,basis:'unit Q255477; count interpolated (placeholder)'},
+      {t:'NVIDIA SN2201 OOB, 3-yr support + NetQ',q:6,per:'n',int:1,unit:4781.50,basis:'Q255477'},
+      {t:'800G DR8 / 2DR4 optics, leaf and spine',q:1008/256,per:'g',int:1,tier:1,unit:2281.46,basis:'LPO unit from Q255478'},
+      {t:'800G 2DR4 finned OSFP, front-end and storage',q:1,per:'g',int:1,unit:2128.88,basis:'Q255477'},
+      {t:'400G DR4 QSFP112',q:74,per:'n',int:1,unit:1540.50,basis:'Q255478'},
+      {t:'Cables and structured fibre, placeholder',q:1,per:'n',unit:400000,basis:'Q255478 TBD once layouts are confirmed'}]},
   ];
+  // ponytail: quantities scale from the 32-node quotes rather than a re-derived topology; replace q with port maths when the LLD exists
+  const itemQty=(it,n,g,tier)=>{const raw=it.per==='g'?it.q*g:it.per==='set'?it.q*Math.ceil(n/500):it.q*n/REF;const v=raw*(it.tier?tier:1);return it.int?Math.ceil(v):v;};
+  const itemsTotal=(o,n)=>o.items.reduce((a,it)=>a+itemQty(it,n,n*8,1)*it.unit,0);
+  FABRICS.forEach(f=>f.total=itemsTotal(f,32));
   const STORAGE=[
     {id:'none',t:'Local NVMe only',d:'~30 TB scratch per node already in the platform price',unit:0,per:'flat',basis:'Civo design, inference or per-job staged training'},
     {id:'vast',t:'VAST, ~1 PB usable',d:'Hardware, service and 3-year subscription',unit:2775548.35,per:'pb',basis:'Q255477 / Q255478'},
@@ -700,10 +727,16 @@ td .pn{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);display:block
     {id:'weka',t:'WEKA, ~1 PB usable',d:'WEKApod appliance, WekaFS',unit:2800000,per:'pb',basis:'no quote; placeholder near VAST',na:true},
   ];
   const MGMT=[
-    {id:'cw',t:'Penguin ClusterWare',d:'5 × Altus head nodes + 3-yr Foundation licence per node and per GPU',total:2227608.50,basis:'Q255478'},
-    {id:'bcm',t:'NVIDIA Base Command Manager',d:'Same head nodes, BCM licence per node',total:252108.50+256*1200*3,basis:'head nodes Q255478; BCM licence estimated',na:true},
-    {id:'oss',t:'Open source (Slurm / K8s)',d:'Head nodes only; engineering time instead of licences',total:252108.50,basis:'head nodes Q255478'},
+    {id:'cw',t:'Penguin ClusterWare',d:'5 × Altus head nodes + 3-yr Foundation licence per node and per GPU',basis:'Q255478 unit prices',items:[
+      {t:'Altus XE1312v2 head node, 2 × EPYC 9255, 384 GB, CX-8, 3-yr support',q:5,per:'n',int:1,unit:50421.70,basis:'Q255478'},
+      {t:'ClusterWare Foundation licence, 3-yr, per node incl. its 8 GPU licences',q:32,per:'n',int:1,unit:1975500/32,basis:'Q255478: 37 node + 256 GPU licences = $1,975,500 at 32 nodes'}]},
+    {id:'bcm',t:'NVIDIA Base Command Manager',d:'Same head nodes, BCM licence per node',basis:'head nodes Q255478; BCM licence estimated',na:true,items:[
+      {t:'Altus XE1312v2 head node, 2 × EPYC 9255, 384 GB, CX-8, 3-yr support',q:5,per:'n',int:1,unit:50421.70,basis:'Q255478'},
+      {t:'Base Command Manager licence, 3-yr',q:1,per:'g',unit:1200*3,basis:'estimate, no quote'}]},
+    {id:'oss',t:'Open source (Slurm / K8s)',d:'Head nodes only; engineering time instead of licences',basis:'head nodes Q255478',items:[
+      {t:'Altus XE1312v2 head node, 2 × EPYC 9255, 384 GB, CX-8, 3-yr support',q:5,per:'n',int:1,unit:50421.70,basis:'Q255478'}]},
   ];
+  MGMT.forEach(m=>m.total=itemsTotal(m,32));
   const OPS=[
     {id:'managed',t:'OEM managed service',d:'Deploy $646K one-off + $1.96M / yr: NBD break-fix, remote support, dashboards, cluster management',deploy:646460,yr:1955969,basis:'Q255478 OriginAI'},
     {id:'deploy',t:'Deploy only, run it yourself',d:'Professional services deploy; in-house team for day 2',deploy:646460,yr:0,basis:'Q255478 OriginAI deploy'},
@@ -821,10 +854,10 @@ td .pn{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);display:block
     add('Racks & power','48U GPU rack, 2 × 34.5 kW switched PDUs, crated ('+C.t+')',cRacks,C.rackUnit,C.basis,'rack');
     add('Racks & power','48U spine / leaf / admin rack with PDUs',infraRacks,19075.30,'Q255478 spine/leaf/admin rack','rack');
     if(C.extra) add('Racks & power',C.extraName,cRacks,C.extra,C.basis,'rack');
-    add('Fabric',F.t+': switches, licences, support, optics, cable allowance'+(F.na?' (placeholder)':'')+(tier>1?' · '+(tier===1.12?'+12% spine layer across '+su+' scale units':'+25% spine and core layers across '+su+' scale units'):''),n,F.total/REF*tier,F.basis+', per node'+(tier>1?', tiered':''),'fabric');
+    F.items.forEach(it=>add('Fabric',it.t+(F.na&&it.tier?' (placeholder)':'')+(it.tier&&tier>1?' · +'+Math.round((tier-1)*100)+'% spine layer across '+su+' scale units':''),itemQty(it,n,g,tier),it.unit,it.basis,'fabric'));
     if(S.unit){const pb=Math.max(1,Math.round(scale));add('Storage',S.t+(S.na?' (placeholder)':''),pb,S.unit,S.basis+(pb>1?', scaled to ~'+pb+' PB':''),'storage');}
     else add('Storage','Local NVMe only ('+(cfg.nvme*cfg.tb).toFixed(1)+' TB per node, in platform price)',1,0,S.basis,'storage');
-    add('Software',M.t+(M.na?' (placeholder)':''),n,M.total/REF,M.basis+', per node','software');
+    M.items.forEach(it=>add('Software',it.t,itemQty(it,n,g,1),it.unit,it.basis,'software'));
     add('Services','Deployment: rack and stack, cabling, configuration, burn-in, acceptance',g,O.deploy/256,O.basis+', per GPU','services');
     state.custom.forEach(r=>{if(r.n||r.u)add('Custom',r.n||'(unnamed)',r.q,r.u,'your input','custom');});
     const capex=rows.reduce((a,r)=>a+r.ext,0);
