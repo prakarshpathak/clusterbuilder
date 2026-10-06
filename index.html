@@ -105,6 +105,11 @@ td .pn{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);display:block
 .opt .lab h3{font-size:14px}
 .opt .lab p{font-size:12px;color:var(--ink-2);margin-top:3px}
 .hall{border:1px solid var(--rule);background:var(--wash);overflow-x:auto}
+.hall.over{outline:2px dashed var(--accent);outline-offset:-2px}
+.hall .nd{cursor:pointer}.hall .nd:hover{fill:var(--warn)}
+.palette{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px;font-size:12px}
+.palette span[draggable]{border:1px solid var(--ink);padding:5px 10px;cursor:grab;background:var(--paper);font-family:var(--mono);user-select:none}
+.palette span[draggable]:active{cursor:grabbing}
 .hall svg{display:block;width:100%;height:auto;font-family:var(--mono);font-size:7px}
 .hall .rk{animation:pop .35s cubic-bezier(.2,.8,.2,1) both}
 @keyframes pop{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
@@ -248,13 +253,28 @@ td .pn{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);display:block
         </div>
 
         <div class="opt">
+          <div class="lab"><h3>Node configuration</h3><p>What each node carries. Defaults come from the platform's quote; changes price at an estimated $/TB and $/GB until a quote lands.</p></div>
+          <div class="field" style="gap:16px">
+            <span id="cfg-cpu" class="muted small"></span>
+            <label>RAM <select id="cfg-ram"><option value="1536">1.5 TB</option><option value="2048">2 TB</option><option value="2304">2.3 TB</option><option value="3072">3 TB</option></select></label>
+            <label>NVMe <select id="cfg-nvme"><option>2</option><option>4</option><option>6</option><option>8</option><option>10</option><option>12</option><option>16</option></select> ×
+            <select id="cfg-tb"><option value="0.96">960 GB</option><option value="1.92">1.92 TB</option><option value="3.84">3.84 TB</option><option value="7.68">7.68 TB</option><option value="15.36">15.36 TB</option></select></label>
+            <span class="val" id="cfg-local"></span>
+            <button class="btn ghost" id="cfg-reset" type="button">Platform default</button>
+          </div>
+        </div>
+
+        <div class="opt">
           <div class="lab"><h3>Cooling</h3><p>Decides node density per rack, and whether the colo needs a facility water loop.</p></div>
           <div class="choices" id="cooling"></div>
         </div>
 
         <div class="opt">
-          <div class="lab"><h3>Data hall</h3><p>Builds as you configure. Each rack fills with nodes at the chosen density; liquid cooling adds a CDU per rack and a facility water loop.</p><p id="hall-cap"></p></div>
-          <div class="hall"><svg id="hall" xmlns="http://www.w3.org/2000/svg"></svg></div>
+          <div class="lab"><h3>Data hall</h3><p>Drag parts onto the floor: a node fills the next rack slot, a CDU converts the hall to liquid cooling, containment sets it back to air. Click a node in a rack to pull it out.</p><p id="hall-cap"></p></div>
+          <div>
+            <div class="palette"><span draggable="true" data-part="node">▣ 8-GPU node</span><span draggable="true" data-part="cdu">▤ 250 kW CDU</span><span draggable="true" data-part="air">▦ Aisle containment</span><span class="muted small">drag onto the floor →</span></div>
+            <div class="hall" id="floor"><svg id="hall" xmlns="http://www.w3.org/2000/svg"></svg></div>
+          </div>
         </div>
 
         <div class="opt">
@@ -620,11 +640,13 @@ td .pn{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);display:block
 
   // ---- option catalogue (per-node prices derived from 32-node quotes unless noted) ----
   const PLATFORMS=[
-    {id:'penguin',t:'Penguin / Wistron HGX B300',d:'BAE8-428, 2 × Xeon 6776P, 3 TB, 8 × 7.68 TB NVMe, BlueField-3, 12 × 5.5 kW PSU',unit:650371.95,basis:'Q255478',kw:13.5,u:8},
-    {id:'dgx',t:'NVIDIA DGX B300',d:'10U, 8 × 288 GB, 3-yr critical support, partner installed',unit:600002.95,basis:'Q255477',kw:14,u:10},
-    {id:'dell',t:'Dell XE9780',d:'10U, 2 × Xeon 6776P, 2 TB, 8 × 3.84 TB, iDRAC10, ProSupport Plus 4-hr',unit:688685.98,basis:'Q255493',kw:13.5,u:10},
-    {id:'smc',t:'Supermicro SYS-822GS / 422GS',d:'HGX B300, air 8U or DLC 4U; matches the io.net draft BOM elevations',unit:620000,basis:'no quote; placeholder',kw:13.5,u:8,na:true},
-    {id:'kr',t:'KR9288-E3 (Civo design)',d:'10U, 2 × EPYC 9555, 1.5 TB, 8 × 3.84 TB, 8 × CX-8 + 2 × CX-7',unit:620000,basis:'no quote; placeholder',kw:13.5,u:10,na:true},
+    {id:'penguin',t:'Penguin / Wistron HGX B300',d:'BAE8-428, 2 × Xeon 6776P, 3 TB, 8 × 7.68 TB NVMe, BlueField-3, 12 × 5.5 kW PSU',unit:650371.95,basis:'Q255478',kw:13.5,u:8,spec:{cpu:'2 × Intel Xeon 6776P (64C)',ram:3072,nvme:8,tb:7.68}},
+    {id:'dgx',t:'NVIDIA DGX B300',d:'10U, 8 × 288 GB, 3-yr critical support, partner installed',unit:600002.95,basis:'Q255477',kw:14,u:10,spec:{cpu:'2 × Intel Xeon 6776P (64C)',ram:2048,nvme:8,tb:3.84}},
+    {id:'dell',t:'Dell XE9780',d:'10U, 2 × Xeon 6776P, 2 TB, 8 × 3.84 TB, iDRAC10, ProSupport Plus 4-hr',unit:688685.98,basis:'Q255493',kw:13.5,u:10,spec:{cpu:'2 × Intel Xeon 6776P (64C)',ram:2048,nvme:8,tb:3.84}},
+    {id:'smc',t:'Supermicro SYS-822GS / 422GS',d:'HGX B300, air 8U or DLC 4U; matches the io.net draft BOM elevations',unit:620000,basis:'no quote; placeholder',kw:13.5,u:8,na:true,spec:{cpu:'2 × Intel Xeon 6 (64C)',ram:2048,nvme:8,tb:3.84}},
+    {id:'amd',t:'HGX B300, AMD Turin (supplier offer)',d:'2 × EPYC 9555 64C 3.2 GHz, 24 × 96 GB DDR5, 4 × 3.84 TB U.2 + 2 × 960 GB M.2, 3-yr warranty, 14-week lead; volume tiers from $530K to $515K',unit:530000,tiers:[[10,530000],[30,525000],[50,520000],[Infinity,515000]],basis:'supplier offer, Sept 2026; tiered by quantity',kw:13.5,u:8,spec:{cpu:'2 × AMD EPYC 9555 (64C, 3.2 GHz)',ram:2304,nvme:4,tb:3.84}},
+    {id:'smcgold',t:'Supermicro SYS-822GS-NB3RT-01-G2 Gold',d:'8U air, 2 × Xeon 6 64C 2.4 GHz, 2 TB DDR5-6400, 8 × E1.S bays (960 GB Gold flash), 8 × ConnectX-8 800G, 6 × 6.6 kW PSU; 8 units max',unit:570000,max:8,basis:'Supermicro Gold SKU SYS-822GS-009 list; 8-unit order cap',kw:13.5,u:8,spec:{cpu:'2 × Intel Xeon 6 (64C, 2.4 GHz)',ram:2048,nvme:8,tb:0.96}},
+    {id:'kr',t:'KR9288-E3 (Civo design)',d:'10U, 2 × EPYC 9555, 1.5 TB, 8 × 3.84 TB, 8 × CX-8 + 2 × CX-7',unit:620000,basis:'no quote; placeholder',kw:13.5,u:10,na:true,spec:{cpu:'2 × AMD EPYC 9555 (64C)',ram:1536,nvme:8,tb:3.84}},
   ];
   const COOLING=[
     {id:'air2',t:'Air, 2 nodes per rack',d:'Penguin layout: 16 GPU racks per 32 nodes, 2 × 34.5 kW PDUs each',per:2,rackUnit:19140.93,basis:'Q255478 GPU rack',extra:0},
@@ -671,7 +693,7 @@ td .pn{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);display:block
     {t:'Pegatron GB300 NVL72 system',d:'72 × GB300 per rack, liquid cooled; rack-scale, not an 8-GPU node',q:'98',u:6020000,gpus:72,lead:'5 to 6 weeks, subject to reconfirmation',rack:true,v:'Pegatron',ch:'Broker'},
     {t:'GB300 NVLink switch trays, 920-9K33R-00MV-GS0',d:'Switch hardware only, full-lot basis',q:'107',u:49000,gpus:0,lead:'Previously immediate; reconfirmation required',rack:true,v:'NVIDIA',ch:'Broker'},
   ];
-  const state={use:'train',market:'',nodes:32,platform:'penguin',cooling:'air2',fabric:'arista',storage:'vast',mgmt:'cw',ops:'managed',colo:180,util:85,term:36,custom:[]};
+  const state={use:'train',market:'',nodes:32,platform:'penguin',cooling:'air2',fabric:'arista',storage:'vast',mgmt:'cw',ops:'managed',colo:180,util:85,term:36,custom:[],ram:0,nvme:0,tb:0};
   try{const s=JSON.parse(localStorage.getItem('cb.state')||'null');if(s)Object.assign(state,s);}catch(e){}
 
   function renderChoices(id,list){
@@ -685,7 +707,7 @@ td .pn{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);display:block
       return `<div class="choice${state[id]===o.id&&!(id==='platform'&&state.market!=='')?' on':''}${o.na?' na':''}" data-id="${o.id}" tabindex="0" role="button" aria-pressed="${state[id]===o.id}"><span class="t">${o.t}</span><span class="d">${o.d}</span><span class="pr">${pr}</span></div>`;
     }).join('');
     el.querySelectorAll('.choice').forEach(c=>{
-      const pick=()=>{state[id]=c.dataset.id;renderChoices(id,list);update();};
+      const pick=()=>{state[id]=c.dataset.id;if(id==='platform')state.ram=state.nvme=state.tb=0;renderChoices(id,list);update();};
       c.addEventListener('click',pick);
       c.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pick();}});
     });
@@ -705,6 +727,20 @@ td .pn{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);display:block
   const nodes=$('#nodes'),nodesn=$('#nodesn'),colo=$('#colo'),util=$('#util'),term=$('#term');
   nodes.value=Math.min(640,state.nodes);nodesn.value=state.nodes;colo.value=state.colo;util.value=state.util;term.value=state.term;
   nodes.addEventListener('input',()=>{state.nodes=+nodes.value;nodesn.value=state.nodes;update();});
+  function setNodes(v){state.nodes=Math.max(1,Math.min(5000,v));nodes.value=Math.min(640,state.nodes);nodesn.value=state.nodes;update();}
+  ['ram','nvme','tb'].forEach(k=>$('#cfg-'+k).addEventListener('change',e=>{state[k]=+e.target.value;update();}));
+  $('#cfg-reset').addEventListener('click',()=>{state.ram=state.nvme=state.tb=0;update();});
+  // Drag and drop: native HTML5 DnD on the palette, the floor is the single drop target. ponytail: no per-rack targeting, node order is deterministic anyway.
+  document.querySelectorAll('.palette [draggable]').forEach(el=>el.addEventListener('dragstart',e=>e.dataTransfer.setData('text/plain',el.dataset.part)));
+  const floor=$('#floor');
+  floor.addEventListener('dragover',e=>{e.preventDefault();floor.classList.add('over');});
+  floor.addEventListener('dragleave',()=>floor.classList.remove('over'));
+  floor.addEventListener('drop',e=>{e.preventDefault();floor.classList.remove('over');const part=e.dataTransfer.getData('text/plain');
+    if(part==='node') setNodes(state.nodes+1);
+    else if(part==='cdu'){state.cooling='dlc';renderChoices('cooling',COOLING);update();}
+    else if(part==='air'){state.cooling=state.cooling==='dlc'?'air4':state.cooling;renderChoices('cooling',COOLING);update();}
+  });
+  floor.addEventListener('click',e=>{if(e.target.classList.contains('nd')&&state.nodes>1) setNodes(state.nodes-1);});
   nodesn.addEventListener('input',()=>{const v=Math.max(1,Math.min(5000,Math.round(+nodesn.value||1)));state.nodes=v;nodes.value=Math.min(640,v);update();});
   colo.addEventListener('input',()=>{state.colo=+colo.value||0;update();});
   util.addEventListener('input',()=>{state.util=+util.value;update();});
@@ -734,7 +770,13 @@ td .pn{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);display:block
     const P=MK?{id:'market',t:MK.t+' (market offer)',d:MK.d,unit:MK.u,basis:MK.v+' via '+MK.ch.toLowerCase()+', Sept 2026; '+MK.lead,kw:13.5,u:8,na:false}:PLATFORMS.find(x=>x.id===state.platform),C=COOLING.find(x=>x.id===state.cooling),F=FABRICS.find(x=>x.id===state.fabric),S=STORAGE.find(x=>x.id===state.storage),M=MGMT.find(x=>x.id===state.mgmt),O=OPS.find(x=>x.id===state.ops);
     const rows=[];
     const add=(cat,item,qty,unit,basis,key)=>rows.push({cat,item,qty,unit,ext:qty*unit,basis,key});
-    add('Compute',P.t+(P.na?' (placeholder)':''),n,P.unit,P.basis,'compute');
+    const unit=P.tiers?P.tiers.find(t=>n<=t[0])[1]:P.unit;
+    add('Compute',P.t+(P.na?' (placeholder)':'')+(P.tiers?' · '+n+'-node tier':''),n,unit,P.basis,'compute');
+    const spec=P.spec||{cpu:'',ram:2048,nvme:8,tb:3.84},cfg={ram:state.ram||spec.ram,nvme:state.nvme||spec.nvme,tb:state.tb||spec.tb};
+    const dTB=cfg.nvme*cfg.tb-spec.nvme*spec.tb,dGB=cfg.ram-spec.ram;
+    if(dTB) add('Compute','Local NVMe change: '+cfg.nvme+' × '+cfg.tb+' TB vs '+spec.nvme+' × '+spec.tb+' TB',n,dTB*130,'estimate $130/TB enterprise NVMe; no quote','compute');
+    if(dGB) add('Compute','Memory change: '+cfg.ram+' GB vs '+spec.ram+' GB',n,dGB*4.5,'estimate $4.50/GB DDR5 RDIMM; no quote','compute');
+    const localTB=n*cfg.nvme*cfg.tb;
     const cRacks=Math.ceil(n/C.per);
     const su=Math.ceil(n/64); // 64-node scale units (Civo)
     // 32-node quotes carry 5 infra racks; Tech Directcore at 128 nodes needs ~24 IB + 8 Eth + 19 OOB switches: ~3 infra racks per 32 nodes at scale
@@ -746,7 +788,7 @@ td .pn{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);display:block
     if(C.extra) add('Racks & power',C.extraName,cRacks,C.extra,C.basis,'rack');
     add('Fabric',F.t+': switches, licences, support, optics, cable allowance'+(F.na?' (placeholder)':'')+(tier>1?' · '+(tier===1.12?'+12% spine layer across '+su+' scale units':'+25% spine and core layers across '+su+' scale units'):''),n,F.total/REF*tier,F.basis+', per node'+(tier>1?', tiered':''),'fabric');
     if(S.unit){const pb=Math.max(1,Math.round(scale));add('Storage',S.t+(S.na?' (placeholder)':''),pb,S.unit,S.basis+(pb>1?', scaled to ~'+pb+' PB':''),'storage');}
-    else add('Storage','Local NVMe only (~30 TB per node, in platform price)',1,0,S.basis,'storage');
+    else add('Storage','Local NVMe only ('+(cfg.nvme*cfg.tb).toFixed(1)+' TB per node, in platform price)',1,0,S.basis,'storage');
     add('Software',M.t+(M.na?' (placeholder)':''),n,M.total/REF,M.basis+', per node','software');
     add('Services','Deployment: rack and stack, cabling, configuration, burn-in, acceptance',g,O.deploy/256,O.basis+', per GPU','services');
     state.custom.forEach(r=>{if(r.n||r.u)add('Custom',r.n||'(unnamed)',r.q,r.u,'your input','custom');});
@@ -758,7 +800,7 @@ td .pn{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);display:block
     const hours=g*730*state.util/100;
     const gpuhr=(capex/state.term+opexMo)/hours;
     const tco=capex+opexMo*state.term;
-    return {rows,capex,kw,coloMo,opsMo,opexMo,gpuhr,tco,n,g,cRacks,infraRacks,su,P,C,F,S,M,O};
+    return {spec,cfg,localTB,rows,capex,kw,coloMo,opsMo,opexMo,gpuhr,tco,n,g,cRacks,infraRacks,su,P,C,F,S,M,O};
   }
 
   const COLORS={compute:'var(--ink)',fabric:'#5b7bd5',storage:'#9aa5b1',software:'#c9b26b',services:'#b07aa1',rack:'#6ab187',custom:'#e07b53'};
@@ -780,6 +822,7 @@ td .pn{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);display:block
       notes.push('<b>Partitioning.</b> Decide static vs elastic split between training and inference before the LLD; it drives the scheduler and whether the fabric is one domain or two.');
       if(r.S.id==='none') notes.push('<b>Storage.</b> Mixed clusters almost always need the shared tier for checkpoints and shared datasets.');
     }
+    if(r.P.max&&r.n>r.P.max) notes.push('<b>Order cap.</b> '+r.P.t+' is capped at '+r.P.max+' units per order; '+r.n+' nodes needs another platform or several orders.');
     if(r.C.id==='dlc') notes.push('<b>Site.</b> Liquid cooling needs a facility chilled-water loop, DN65 primaries and a water-quality contract; fewer racks ('+r.cRacks+' compute) but a narrower list of colos.');
     else notes.push('<b>Site.</b> Air at '+r.C.per+' nodes per rack: '+r.cRacks+' compute racks plus '+r.infraRacks+' for spine, leaf and admin; ask the colo for '+(r.C.per*r.P.kw*1.05).toFixed(0)+' kW per rack.');
     if(r.su>1&&r.su<=8) notes.push('<b>Scale.</b> '+r.su+' scale units: a shared spine layer is added (+12% on fabric). Tech Directcore run 1,024 GPUs as 16 leaf + 8 spine Q3400 at 1:1.');
@@ -810,7 +853,7 @@ td .pn{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);display:block
       out+=`<g class="rk" style="animation-delay:${Math.min(i,40)*25}ms"><rect x="${x}" y="${y}" width="${W}" height="${H}" fill="var(--paper)" stroke="var(--ink)" stroke-width=".8"/>`;
       if(k.k==='c'){
         const slotH=(H-8-(dlc?10:0))/per;
-        for(let j=0;j<k.n;j++) out+=`<rect x="${x+3}" y="${y+3+j*slotH}" width="${W-6}" height="${slotH-1.5}" fill="var(--ink)"/>`;
+        for(let j=0;j<k.n;j++) out+=`<rect class="nd" x="${x+3}" y="${y+3+j*slotH}" width="${W-6}" height="${slotH-1.5}" fill="var(--ink)"><title>Remove this node</title></rect>`;
         for(let j=k.n;j<per;j++) out+=`<rect x="${x+3}" y="${y+3+j*slotH}" width="${W-6}" height="${slotH-1.5}" fill="none" stroke="var(--rule)"/>`;
         if(dlc) out+=`<rect x="${x+3}" y="${y+H-13}" width="${W-6}" height="8" fill="#5b7bd5"/><text x="${x+W/2}" y="${y+H-7}" fill="#fff" text-anchor="middle" font-size="5.5">CDU 250kW</text>`;
         out+=`<text x="${x+W/2}" y="${y+H-1.5}" fill="var(--ink-2)" text-anchor="middle" font-size="5.5">${k.n*8} GPU</text>`;
@@ -842,10 +885,12 @@ td .pn{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);display:block
     $('#s-tco').textContent=fmtM(r.tco);
     $('#s-racks').textContent=(r.cRacks+r.infraRacks)+' ('+r.cRacks+' compute)';
     $('#s-kw').textContent=r.kw>=1000?(r.kw/1000).toFixed(1)+' MW':r.kw.toFixed(0)+' kW';
-    $('#s-nvme').textContent=(r.n*30/1000).toFixed(1)+' PB';
+    $('#s-nvme').textContent=(r.localTB/1000).toFixed(1)+' PB';
     const by={};r.rows.forEach(x=>by[x.key]=(by[x.key]||0)+x.ext);
     $('#s-bar').innerHTML=Object.keys(by).filter(k=>by[k]>0).map(k=>`<i style="width:${by[k]/r.capex*100}%;background:${COLORS[k]}"></i>`).join('');
     $('#s-legend').innerHTML=Object.keys(by).filter(k=>by[k]>0).map(k=>`<span><i style="background:${COLORS[k]}"></i>${NAMES[k]} ${(by[k]/r.capex*100).toFixed(0)}%</span>`).join('');
+    $('#cfg-cpu').textContent=r.spec.cpu;$('#cfg-ram').value=r.cfg.ram;$('#cfg-nvme').value=r.cfg.nvme;$('#cfg-tb').value=r.cfg.tb;
+    $('#cfg-local').textContent=(r.cfg.nvme*r.cfg.tb).toFixed(1)+' TB / node';
     fit(r);drawHall(r);
     try{localStorage.setItem('cb.state',JSON.stringify(state));}catch(e){}
   }
